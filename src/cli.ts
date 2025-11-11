@@ -13,11 +13,13 @@ import {
 } from './git.js';
 import { createOrUpdatePR } from './github.js';
 import { getColors } from './colors.js';
+import { generateChangelogSection, groupCommitsByPackage } from './changelog.js';
 
 const colors = getColors(process.env, process.stdout.isTTY);
 
 async function main() {
   const isDryRun = process.env.CI !== '1';
+  const showPrPreview = process.argv.includes('--pr');
   const cwd = process.cwd();
 
   console.log('🚀 mono-release\n');
@@ -110,6 +112,73 @@ async function main() {
       console.log(
         '\n💡 Set CI=1 to execute these changes for real.\n'
       );
+
+      if (showPrPreview) {
+        console.log('📄 PR Preview:\n');
+
+        // Generate PR title and body
+        const prTitle = `Release ${versionBump.newVersion}`;
+        console.log(`${colors.blue}Title:${colors.reset}`);
+        console.log(`   ${prTitle}\n`);
+
+        // Generate changelog summary for PR body
+        const changelogSummary = commits
+          .filter((c) => c.type === 'feat' || c.type === 'fix' || c.breaking)
+          .map((c) => {
+            const prefix = c.breaking ? '⚠️ BREAKING: ' : c.type === 'feat' ? '✨ ' : '🐛 ';
+            return `${prefix}${c.subject}`;
+          })
+          .join('\n');
+
+        console.log(`${colors.blue}Description:${colors.reset}`);
+        console.log(`   ## Release ${versionBump.newVersion}\n`);
+        if (changelogSummary) {
+          changelogSummary.split('\n').forEach(line => console.log(`   ${line}`));
+        }
+        console.log();
+
+        // Show files that would be changed
+        console.log(`${colors.blue}Files changed:${colors.reset}\n`);
+
+        // Root package.json
+        console.log(`   ${colors.blue}package.json${colors.reset}`);
+        console.log(`     - version: ${workspace.rootVersion} → ${versionBump.newVersion}\n`);
+
+        // Workspace package.json files
+        for (const pkg of workspace.packages) {
+          if (pkg.path !== workspace.rootPath) {
+            const relativePath = pkg.path.replace(workspace.rootPath + '/', '');
+            console.log(`   ${colors.blue}${relativePath}/package.json${colors.reset}`);
+            console.log(`     - version: ${pkg.version} → ${versionBump.newVersion}\n`);
+          }
+        }
+
+        // Changelogs
+        const commitsByPackage = groupCommitsByPackage(commits);
+
+        for (const pkg of workspace.packages) {
+          const packageCommits = commitsByPackage.get(pkg.name);
+          if (packageCommits && packageCommits.length > 0) {
+            const relativePath = pkg.path === workspace.rootPath
+              ? ''
+              : pkg.path.replace(workspace.rootPath + '/', '') + '/';
+            console.log(`   ${colors.blue}${relativePath}CHANGELOG.md${colors.reset}`);
+
+            // Generate and display the changelog section
+            const changelogContent = generateChangelogSection(versionBump.newVersion!, packageCommits);
+            // Indent each line for display
+            const lines = changelogContent.split('\n');
+            for (const line of lines) {
+              if (line.trim()) {
+                console.log(`     ${line}`);
+              } else {
+                console.log();
+              }
+            }
+          }
+        }
+      }
+
       process.exit(0);
     }
 

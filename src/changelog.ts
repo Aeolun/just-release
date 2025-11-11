@@ -12,12 +12,63 @@ interface ChangelogEntry {
   breaking: boolean;
 }
 
-export async function generateChangelogs(
+export function generateChangelogSection(
   newVersion: string,
-  commits: CommitInfo[],
-  packages: WorkspacePackage[]
-): Promise<void> {
-  // Group commits by package
+  commits: CommitInfo[]
+): string {
+  const today = new Date().toISOString().split('T')[0];
+  let versionSection = `## ${newVersion} (${today})\n\n`;
+
+  // Group commits by type
+  const breaking = commits.filter((c) => c.breaking);
+  const features = commits.filter(
+    (c) => c.type === 'feat' && !c.breaking
+  );
+  const fixes = commits.filter((c) => c.type === 'fix');
+  const perf = commits.filter((c) => c.type === 'perf');
+
+  // Add breaking changes section
+  if (breaking.length > 0) {
+    versionSection += '### BREAKING CHANGES\n\n';
+    for (const commit of breaking) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add features section
+  if (features.length > 0) {
+    versionSection += '### Features\n\n';
+    for (const commit of features) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add bug fixes section
+  if (fixes.length > 0) {
+    versionSection += '### Bug Fixes\n\n';
+    for (const commit of fixes) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add performance section
+  if (perf.length > 0) {
+    versionSection += '### Performance Improvements\n\n';
+    for (const commit of perf) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  return versionSection;
+}
+
+export function groupCommitsByPackage(
+  commits: CommitInfo[]
+): Map<string, CommitInfo[]> {
   const commitsByPackage = new Map<string, CommitInfo[]>();
 
   for (const commit of commits) {
@@ -28,6 +79,17 @@ export async function generateChangelogs(
       commitsByPackage.get(packageName)!.push(commit);
     }
   }
+
+  return commitsByPackage;
+}
+
+export async function generateChangelogs(
+  newVersion: string,
+  commits: CommitInfo[],
+  packages: WorkspacePackage[]
+): Promise<void> {
+  // Group commits by package
+  const commitsByPackage = groupCommitsByPackage(commits);
 
   // Generate changelog for each package with changes
   for (const pkg of packages) {
@@ -53,52 +115,7 @@ export async function generateChangelogs(
     }
 
     // Generate new version section
-    const today = new Date().toISOString().split('T')[0];
-    let versionSection = `## ${newVersion} (${today})\n\n`;
-
-    // Group commits by type
-    const breaking = packageCommits.filter((c) => c.breaking);
-    const features = packageCommits.filter(
-      (c) => c.type === 'feat' && !c.breaking
-    );
-    const fixes = packageCommits.filter((c) => c.type === 'fix');
-    const perf = packageCommits.filter((c) => c.type === 'perf');
-
-    // Add breaking changes section
-    if (breaking.length > 0) {
-      versionSection += '### BREAKING CHANGES\n\n';
-      for (const commit of breaking) {
-        versionSection += `- ${commit.subject}\n`;
-      }
-      versionSection += '\n';
-    }
-
-    // Add features section
-    if (features.length > 0) {
-      versionSection += '### Features\n\n';
-      for (const commit of features) {
-        versionSection += `- ${commit.subject}\n`;
-      }
-      versionSection += '\n';
-    }
-
-    // Add bug fixes section
-    if (fixes.length > 0) {
-      versionSection += '### Bug Fixes\n\n';
-      for (const commit of fixes) {
-        versionSection += `- ${commit.subject}\n`;
-      }
-      versionSection += '\n';
-    }
-
-    // Add performance section
-    if (perf.length > 0) {
-      versionSection += '### Performance Improvements\n\n';
-      for (const commit of perf) {
-        versionSection += `- ${commit.subject}\n`;
-      }
-      versionSection += '\n';
-    }
+    const versionSection = generateChangelogSection(newVersion, packageCommits);
 
     // Combine new and existing content
     const fullChangelog =
