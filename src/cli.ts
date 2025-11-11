@@ -41,12 +41,12 @@ function generatePRSummary(commits: CommitInfo[]): string {
 
       // Include body if present
       if (c.body && c.body.trim()) {
-        // Indent the body for better readability
+        // Indent the body for better readability (blank line before body)
         const indentedBody = c.body
           .split('\n')
           .map((line) => `  ${line}`)
           .join('\n');
-        summary += `\n${indentedBody}`;
+        summary += `\n\n${indentedBody}`;
       }
 
       return summary;
