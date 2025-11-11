@@ -26,6 +26,13 @@ export function generateChangelogSection(
   );
   const fixes = commits.filter((c) => c.type === 'fix');
   const perf = commits.filter((c) => c.type === 'perf');
+  const tests = commits.filter((c) => c.type === 'test');
+  const docs = commits.filter((c) => c.type === 'docs');
+  const chores = commits.filter((c) => c.type === 'chore');
+  const refactors = commits.filter((c) => c.type === 'refactor');
+  const styles = commits.filter((c) => c.type === 'style');
+  const builds = commits.filter((c) => c.type === 'build');
+  const ci = commits.filter((c) => c.type === 'ci');
 
   // Add breaking changes section
   if (breaking.length > 0) {
@@ -58,6 +65,69 @@ export function generateChangelogSection(
   if (perf.length > 0) {
     versionSection += '### Performance Improvements\n\n';
     for (const commit of perf) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add tests section
+  if (tests.length > 0) {
+    versionSection += '### Tests\n\n';
+    for (const commit of tests) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add documentation section
+  if (docs.length > 0) {
+    versionSection += '### Documentation\n\n';
+    for (const commit of docs) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add refactoring section
+  if (refactors.length > 0) {
+    versionSection += '### Refactoring\n\n';
+    for (const commit of refactors) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add chores section
+  if (chores.length > 0) {
+    versionSection += '### Chores\n\n';
+    for (const commit of chores) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add style section
+  if (styles.length > 0) {
+    versionSection += '### Styles\n\n';
+    for (const commit of styles) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add build section
+  if (builds.length > 0) {
+    versionSection += '### Build\n\n';
+    for (const commit of builds) {
+      versionSection += `- ${commit.subject}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add CI section
+  if (ci.length > 0) {
+    versionSection += '### CI\n\n';
+    for (const commit of ci) {
       versionSection += `- ${commit.subject}\n`;
     }
     versionSection += '\n';
