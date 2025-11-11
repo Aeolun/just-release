@@ -6,6 +6,30 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WorkspacePackage } from './workspace.js';
 
+async function ensureGitConfig(git: SimpleGit): Promise<void> {
+  // Only configure if we're in GitHub Actions
+  if (!process.env.GITHUB_ACTIONS) {
+    return;
+  }
+
+  // Check if user.name is already configured locally (not global)
+  try {
+    const userName = await git.getConfig('user.name', 'local');
+    const userEmail = await git.getConfig('user.email', 'local');
+
+    // If both are configured locally, we're good
+    if (userName.value && userEmail.value) {
+      return;
+    }
+  } catch (error) {
+    // Config not set, continue to set defaults
+  }
+
+  // Set github-actions[bot] as default (local config)
+  await git.addConfig('user.name', 'github-actions[bot]', false, 'local');
+  await git.addConfig('user.email', 'github-actions[bot]@users.noreply.github.com', false, 'local');
+}
+
 export async function createReleaseBranch(repoPath: string): Promise<string> {
   const git: SimpleGit = simpleGit(repoPath);
 
@@ -61,6 +85,9 @@ export async function commitAndPush(
   push: boolean
 ): Promise<void> {
   const git: SimpleGit = simpleGit(repoPath);
+
+  // Ensure git is configured (auto-configure in GitHub Actions if needed)
+  await ensureGitConfig(git);
 
   // Stage all changes
   await git.add('.');

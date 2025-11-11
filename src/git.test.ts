@@ -122,3 +122,40 @@ test('commitAndPush creates commit with correct message', async () => {
     rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('commitAndPush auto-configures git in GitHub Actions', async () => {
+  const tmpDir = await mkdtemp(join(tmpdir(), 'test-git-'));
+  const git: SimpleGit = simpleGit(tmpDir);
+
+  // Save original env
+  const originalGithubActions = process.env.GITHUB_ACTIONS;
+
+  try {
+    // Initialize git without user config
+    await git.init();
+
+    // Set GITHUB_ACTIONS env
+    process.env.GITHUB_ACTIONS = 'true';
+
+    // Create initial file
+    await writeFile(
+      join(tmpDir, 'package.json'),
+      JSON.stringify({ name: 'test', version: '1.0.0' })
+    );
+
+    // Should auto-configure and commit successfully without any user config set
+    await commitAndPush(tmpDir, '2.0.0', false);
+
+    const log = await git.log({ maxCount: 1 });
+    assert.strictEqual(log.latest?.message, 'release: 2.0.0');
+    assert.strictEqual(log.latest?.author_name, 'github-actions[bot]');
+  } finally {
+    // Restore original env
+    if (originalGithubActions === undefined) {
+      delete process.env.GITHUB_ACTIONS;
+    } else {
+      process.env.GITHUB_ACTIONS = originalGithubActions;
+    }
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
