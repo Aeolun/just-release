@@ -96,8 +96,11 @@ async function main() {
     if (isDryRun) {
       const packageJsonCount =
         workspace.packages.filter((p) => p.path !== workspace.rootPath).length + 1;
+      const today = new Date().toISOString().split('T')[0];
+      const branchName = `release/${today}`;
+
       console.log('🎯 Dry-run summary:');
-      console.log(`   • Would create release branch`);
+      console.log(`   • Would create release branch ${colors.blue}${branchName}${colors.reset}`);
       console.log(
         `   • Would update ${packageJsonCount} package.json file(s)`
       );
