@@ -36,8 +36,22 @@ function getCommitPrefix(commit: CommitInfo): string {
 
 function generatePRSummary(commits: CommitInfo[]): string {
   return commits
-    .map((c) => `- ${c.hash}: ${getCommitPrefix(c)}${c.subject}`)
-    .join('\n');
+    .map((c) => {
+      let summary = `- ${c.hash}: ${getCommitPrefix(c)}${c.subject}`;
+
+      // Include body if present
+      if (c.body && c.body.trim()) {
+        // Indent the body for better readability
+        const indentedBody = c.body
+          .split('\n')
+          .map((line) => `  ${line}`)
+          .join('\n');
+        summary += `\n${indentedBody}`;
+      }
+
+      return summary;
+    })
+    .join('\n\n');
 }
 
 async function main() {
