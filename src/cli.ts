@@ -54,7 +54,23 @@ async function main() {
     // Step 2: Analyze commits
     console.log('📝 Analyzing commits since last release...');
     const commits = await analyzeCommits(cwd, workspace.packages);
-    console.log(`   Found ${commits.length} commit(s) since last release\n`);
+    console.log(`   Found ${commits.length} commit(s) since last release`);
+
+    // Summarize commit types
+    const commitCounts = new Map<string, number>();
+    for (const commit of commits) {
+      const type = commit.type || 'other';
+      commitCounts.set(type, (commitCounts.get(type) || 0) + 1);
+    }
+
+    if (commits.length > 0) {
+      const summary = Array.from(commitCounts.entries())
+        .sort((a, b) => b[1] - a[1]) // Sort by count descending
+        .map(([type, count]) => `${count} ${type}`)
+        .join(', ');
+      console.log(`   ${summary}`);
+    }
+    console.log();
 
     if (commits.length === 0) {
       console.log('✨ No new commits since last release. Nothing to do!');
