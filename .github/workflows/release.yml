@@ -36,4 +36,4 @@ jobs:
         env:
           CI: 1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm mono-release
+        run: node dist/cli.js
