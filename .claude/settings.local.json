@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm init:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm test:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm build:*)",
+      "Bash(chmod:*)",
+      "Bash(node dist/cli.js:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "mono-release",
+  "version": "0.1.0",
+  "description": "Automated monorepo release tool with conventional commits",
+  "type": "module",
+  "bin": {
+    "mono-release": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "monorepo",
+    "release",
+    "conventional-commits",
+    "changelog"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@octokit/rest": "^22.0.1",
+    "conventional-commits-parser": "^6.2.1",
+    "glob": "^11.0.3",
+    "semver": "^7.7.3",
+    "simple-git": "^3.30.0",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/conventional-commits-parser": "^5.0.2",
+    "@types/node": "^24.10.0",
+    "@types/semver": "^7.7.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
