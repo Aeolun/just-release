@@ -3,7 +3,7 @@
 // ABOUTME: Orchestrates release workflow with dry-run and live modes
 
 import { detectWorkspace } from './workspace.js';
-import { analyzeCommits } from './commits.js';
+import { analyzeCommits, CommitInfo } from './commits.js';
 import { calculateVersionBump } from './version.js';
 import { generateChangelogs } from './changelog.js';
 import {
@@ -16,6 +16,29 @@ import { getColors } from './colors.js';
 import { generateChangelogSection, groupCommitsByPackage } from './changelog.js';
 
 const colors = getColors(process.env, process.stdout.isTTY);
+
+function getCommitPrefix(commit: CommitInfo): string {
+  if (commit.breaking) return '⚠️ BREAKING: ';
+  switch (commit.type) {
+    case 'feat': return '✨ ';
+    case 'fix': return '🐛 ';
+    case 'perf': return '⚡ ';
+    case 'test': return '✅ ';
+    case 'docs': return '📝 ';
+    case 'refactor': return '♻️ ';
+    case 'chore': return '🔧 ';
+    case 'style': return '💄 ';
+    case 'build': return '📦 ';
+    case 'ci': return '👷 ';
+    default: return '';
+  }
+}
+
+function generatePRSummary(commits: CommitInfo[]): string {
+  return commits
+    .map((c) => `${getCommitPrefix(c)}${c.subject}`)
+    .join('\n');
+}
 
 async function main() {
   const isDryRun = process.env.CI !== '1';
@@ -122,13 +145,7 @@ async function main() {
         console.log(`   ${prTitle}\n`);
 
         // Generate changelog summary for PR body
-        const changelogSummary = commits
-          .filter((c) => c.type === 'feat' || c.type === 'fix' || c.breaking)
-          .map((c) => {
-            const prefix = c.breaking ? '⚠️ BREAKING: ' : c.type === 'feat' ? '✨ ' : '🐛 ';
-            return `${prefix}${c.subject}`;
-          })
-          .join('\n');
+        const changelogSummary = generatePRSummary(commits);
 
         console.log(`${colors.blue}Description:${colors.reset}`);
         console.log(`   ## Release ${versionBump.newVersion}\n`);
@@ -222,13 +239,7 @@ async function main() {
     }
 
     // Build changelog summary for PR body
-    const changelogSummary = commits
-      .filter((c) => c.type === 'feat' || c.type === 'fix' || c.breaking)
-      .map((c) => {
-        const prefix = c.breaking ? '⚠️ BREAKING: ' : c.type === 'feat' ? '✨ ' : '🐛 ';
-        return `${prefix}${c.subject}`;
-      })
-      .join('\n');
+    const changelogSummary = generatePRSummary(commits);
 
     const prUrl = await createOrUpdatePR(
       cwd,
