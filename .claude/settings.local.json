@@ -8,7 +8,11 @@
       "Bash(cat:*)",
       "Bash(pnpm build:*)",
       "Bash(chmod:*)",
-      "Bash(node dist/cli.js:*)"
+      "Bash(node dist/cli.js:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(NO_COLOR=1 node:*)",
+      "Bash(bash -c 'NO_COLOR=1 node dist/cli.js')"
     ],
     "deny": [],
     "ask": []

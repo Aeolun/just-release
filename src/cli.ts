@@ -12,17 +12,9 @@ import {
   commitAndPush,
 } from './git.js';
 import { createOrUpdatePR } from './github.js';
+import { getColors } from './colors.js';
 
-// ANSI color codes - respect NO_COLOR and terminal capabilities
-const supportsColor =
-  !process.env.NO_COLOR &&
-  process.env.TERM !== 'dumb' &&
-  process.stdout.isTTY;
-
-const colors = {
-  blue: supportsColor ? '\x1b[34m' : '',
-  reset: supportsColor ? '\x1b[0m' : '',
-};
+const colors = getColors(process.env, process.stdout.isTTY);
 
 async function main() {
   const isDryRun = process.env.CI !== '1';
