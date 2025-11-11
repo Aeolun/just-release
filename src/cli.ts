@@ -51,7 +51,14 @@ async function main() {
     // Step 2: Analyze commits
     console.log('📝 Analyzing commits since last release...');
     const commits = await analyzeCommits(cwd, workspace.packages);
-    console.log(`   Found ${commits.length} commit(s) since last release`);
+
+    if (commits.length === 0) {
+      console.log(`   Found ${commits.length} commit(s) since last release`);
+      console.log('\n✨ No new commits since last release. Nothing to do!');
+      process.exit(0);
+    }
+
+    console.log(`   Found ${commits.length} commit(s) since last release:`);
 
     // Summarize commit types
     const commitCounts = new Map<string, number>();
@@ -60,19 +67,13 @@ async function main() {
       commitCounts.set(type, (commitCounts.get(type) || 0) + 1);
     }
 
-    if (commits.length > 0) {
-      const summary = Array.from(commitCounts.entries())
-        .sort((a, b) => b[1] - a[1]) // Sort by count descending
-        .map(([type, count]) => `${count} ${type}`)
-        .join(', ');
-      console.log(`   ${summary}`);
+    const sortedCounts = Array.from(commitCounts.entries())
+      .sort((a, b) => b[1] - a[1]); // Sort by count descending
+
+    for (const [type, count] of sortedCounts) {
+      console.log(`     - ${count} ${type}`);
     }
     console.log();
-
-    if (commits.length === 0) {
-      console.log('✨ No new commits since last release. Nothing to do!');
-      process.exit(0);
-    }
 
     // Step 3: Calculate version bump
     console.log('🔢 Calculating version bump...');
