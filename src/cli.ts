@@ -29,9 +29,20 @@ async function main() {
     // Step 1: Detect workspace
     console.log('📦 Detecting workspace...');
     const workspace = await detectWorkspace(cwd);
-    console.log(
-      `   Found ${workspace.packages.length} package(s) in workspace`
-    );
+
+    // Check if this is a single-package repo (root package only)
+    const isSinglePackage =
+      workspace.packages.length === 1 &&
+      workspace.packages[0].path === workspace.rootPath;
+
+    if (isSinglePackage) {
+      console.log(`   No workspace configuration found`);
+      console.log(`   Using root package as single package`);
+    } else {
+      console.log(
+        `   Found ${workspace.packages.length} package(s) in workspace`
+      );
+    }
     console.log(`   Current version: ${workspace.rootVersion}\n`);
 
     // Step 2: Analyze commits
