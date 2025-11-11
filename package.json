@@ -1,6 +1,6 @@
 {
   "name": "mono-release",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Automated monorepo release tool with conventional commits",
   "type": "module",
   "bin": {
