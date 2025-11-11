@@ -1,4 +1,4 @@
-# mono-release
+# just-release
 
 Automated monorepo release tool with conventional commits support.
 
@@ -15,17 +15,17 @@ Automated monorepo release tool with conventional commits support.
 ## Installation
 
 ```bash
-pnpm add -D mono-release
+pnpm add -D just-release
 ```
 
 ## Usage
 
 ### Local Development (Dry-run)
 
-By default, `mono-release` runs in dry-run mode when not in a CI environment:
+By default, `just-release` runs in dry-run mode when not in a CI environment:
 
 ```bash
-pnpm mono-release
+pnpm just-release
 ```
 
 This will show you what would happen without making any actual changes.
@@ -35,7 +35,7 @@ This will show you what would happen without making any actual changes.
 Set `CI=1` to execute the release process:
 
 ```bash
-CI=1 GITHUB_TOKEN=$GITHUB_TOKEN pnpm mono-release
+CI=1 GITHUB_TOKEN=$GITHUB_TOKEN pnpm just-release
 ```
 
 ## How It Works
@@ -128,7 +128,7 @@ jobs:
         env:
           CI: 1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm mono-release
+        run: pnpm just-release
 ```
 
 ### Publishing
@@ -176,12 +176,12 @@ jobs:
 
 ## Single-Package vs Monorepo
 
-`mono-release` automatically adapts to your repository structure:
+`just-release` automatically adapts to your repository structure:
 
 - **Monorepo** - If `pnpm-workspace.yaml` or `package.json` workspaces are found, all workspace packages are bumped to the same version
 - **Single-package** - If no workspace configuration is found, the root package is treated as the only package
 
-This means you can use `mono-release` for both monorepos and single-package repos without any configuration changes.
+This means you can use `just-release` for both monorepos and single-package repos without any configuration changes.
 
 ## Requirements
 

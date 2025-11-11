@@ -12,7 +12,11 @@
       "Bash(git commit:*)",
       "Bash(git add:*)",
       "Bash(NO_COLOR=1 node:*)",
-      "Bash(bash -c 'NO_COLOR=1 node dist/cli.js')"
+      "Bash(bash -c 'NO_COLOR=1 node dist/cli.js')",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(bash -c 'NO_COLOR=1 node dist/cli.js --pr')",
+      "Bash(git rebase:*)"
     ],
     "deny": [],
     "ask": []

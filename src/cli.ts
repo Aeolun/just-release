@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ABOUTME: CLI entry point for mono-release tool
+// ABOUTME: CLI entry point for just-release tool
 // ABOUTME: Orchestrates release workflow with dry-run and live modes
 
 import { detectWorkspace } from './workspace.js';
@@ -59,7 +59,7 @@ async function main() {
   const showPrPreview = process.argv.includes('--pr');
   const cwd = process.cwd();
 
-  console.log('🚀 mono-release\n');
+  console.log('🚀 just-release\n');
 
   if (isDryRun) {
     console.log('🔍 Running in DRY-RUN mode (set CI=1 to execute)\n');

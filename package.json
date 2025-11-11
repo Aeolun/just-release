@@ -1,10 +1,10 @@
 {
-  "name": "mono-release",
+  "name": "just-release",
   "version": "0.2.0",
   "description": "Automated monorepo release tool with conventional commits",
   "type": "module",
   "bin": {
-    "mono-release": "./dist/cli.js"
+    "just-release": "./dist/cli.js"
   },
   "files": [
     "dist",
