@@ -174,12 +174,21 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
+## Single-Package vs Monorepo
+
+`mono-release` automatically adapts to your repository structure:
+
+- **Monorepo** - If `pnpm-workspace.yaml` or `package.json` workspaces are found, all workspace packages are bumped to the same version
+- **Single-package** - If no workspace configuration is found, the root package is treated as the only package
+
+This means you can use `mono-release` for both monorepos and single-package repos without any configuration changes.
+
 ## Requirements
 
 - Node.js >= 18
 - Git repository with `origin` remote pointing to GitHub
 - Root `package.json` with `version` field
-- Workspace configuration in `pnpm-workspace.yaml` or `package.json`
+- Optional: Workspace configuration in `pnpm-workspace.yaml` or `package.json`
 
 ## License
 

@@ -63,10 +63,12 @@ async function main() {
     );
 
     if (isDryRun) {
+      const packageJsonCount =
+        workspace.packages.filter((p) => p.path !== workspace.rootPath).length + 1;
       console.log('🎯 Dry-run summary:');
       console.log(`   • Would create release branch`);
       console.log(
-        `   • Would update ${workspace.packages.length + 1} package.json file(s)`
+        `   • Would update ${packageJsonCount} package.json file(s)`
       );
       console.log(`   • Would generate changelogs for affected packages`);
       console.log(`   • Would commit changes with message: "release: ${versionBump.newVersion}"`);

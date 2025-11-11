@@ -40,8 +40,13 @@ export async function updatePackageVersions(
   rootPackage.version = newVersion;
   await writeFile(rootPath, JSON.stringify(rootPackage, null, 2) + '\n');
 
-  // Update workspace packages
+  // Update workspace packages (skip root if it's in the packages list)
   for (const pkg of packages) {
+    // Skip if this package is the root (single-package repo)
+    if (pkg.path === repoPath) {
+      continue;
+    }
+
     const pkgPath = join(pkg.path, 'package.json');
     const pkgContent = await readFile(pkgPath, 'utf-8');
     const pkgJson = JSON.parse(pkgContent);

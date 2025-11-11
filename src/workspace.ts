@@ -73,6 +73,15 @@ export async function detectWorkspace(rootPath: string): Promise<WorkspaceInfo> 
     }
   }
 
+  // If no workspace packages found, treat root as the package
+  if (packages.length === 0) {
+    packages.push({
+      name: rootPackageJson.name,
+      version: rootPackageJson.version,
+      path: rootPath,
+    });
+  }
+
   return {
     rootVersion: rootPackageJson.version,
     rootPath,

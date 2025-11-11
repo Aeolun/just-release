@@ -95,3 +95,23 @@ test('detectWorkspace throws when root package.json has no version', async () =>
     rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('detectWorkspace uses root package when no workspace config found', async () => {
+  const tmpDir = await mkdtemp(join(tmpdir(), 'test-'));
+
+  try {
+    await writeFile(
+      join(tmpDir, 'package.json'),
+      JSON.stringify({ name: 'my-package', version: '3.0.0' })
+    );
+
+    const result = await detectWorkspace(tmpDir);
+
+    assert.strictEqual(result.rootVersion, '3.0.0');
+    assert.strictEqual(result.packages.length, 1);
+    assert.strictEqual(result.packages[0].name, 'my-package');
+    assert.strictEqual(result.packages[0].path, tmpDir);
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

@@ -62,7 +62,12 @@ export async function analyzeCommits(
     for (const file of files) {
       for (const pkg of workspacePackages) {
         const relativePkgPath = pkg.path.replace(repoPath + '/', '');
-        if (file.startsWith(relativePkgPath)) {
+        // For single-package repos, pkg.path === repoPath, so relativePkgPath will be unchanged
+        // In that case, all files belong to the root package
+        if (relativePkgPath === pkg.path) {
+          // Root package - all files belong to it
+          affectedPackages.add(pkg.name);
+        } else if (file.startsWith(relativePkgPath)) {
           affectedPackages.add(pkg.name);
         }
       }
