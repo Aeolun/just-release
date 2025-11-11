@@ -43,8 +43,11 @@ export async function analyzeCommits(
   const commits: CommitInfo[] = [];
 
   for (const commit of commitsToAnalyze) {
-    // Parse conventional commit
-    const parsed = parser.parse(commit.message);
+    // Parse conventional commit (combine message and body for full parsing)
+    const fullMessage = commit.body
+      ? `${commit.message}\n\n${commit.body}`
+      : commit.message;
+    const parsed = parser.parse(fullMessage);
 
     // Get files changed in this commit
     const diffSummary = await git.show([
