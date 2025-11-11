@@ -36,7 +36,7 @@ function getCommitPrefix(commit: CommitInfo): string {
 
 function generatePRSummary(commits: CommitInfo[]): string {
   return commits
-    .map((c) => `${getCommitPrefix(c)}${c.subject}`)
+    .map((c) => `- ${c.hash}: ${getCommitPrefix(c)}${c.subject}`)
     .join('\n');
 }
 
