@@ -13,10 +13,15 @@ import {
 } from './git.js';
 import { createOrUpdatePR } from './github.js';
 
-// ANSI color codes
+// ANSI color codes - respect NO_COLOR and terminal capabilities
+const supportsColor =
+  !process.env.NO_COLOR &&
+  process.env.TERM !== 'dumb' &&
+  process.stdout.isTTY;
+
 const colors = {
-  blue: '\x1b[34m',
-  reset: '\x1b[0m',
+  blue: supportsColor ? '\x1b[34m' : '',
+  reset: supportsColor ? '\x1b[0m' : '',
 };
 
 async function main() {
