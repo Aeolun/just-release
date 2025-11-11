@@ -13,6 +13,12 @@ import {
 } from './git.js';
 import { createOrUpdatePR } from './github.js';
 
+// ANSI color codes
+const colors = {
+  blue: '\x1b[34m',
+  reset: '\x1b[0m',
+};
+
 async function main() {
   const isDryRun = process.env.CI !== '1';
   const cwd = process.cwd();
@@ -37,7 +43,7 @@ async function main() {
 
     if (isSinglePackage) {
       console.log(`   No workspace configuration found`);
-      console.log(`   Using root package as single package`);
+      console.log(`   Using root package at ${colors.blue}./package.json${colors.reset}`);
     } else {
       console.log(
         `   Found ${workspace.packages.length} package(s) in workspace`
