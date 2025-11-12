@@ -13,6 +13,9 @@ This tool is **opinionated by design**. It doesn't try to support every weird re
 - ✅ GitHub Actions for automated releases
 - ✅ Per-package changelogs
 - ✅ Unified versioning across all packages
+- ✅ Works with pnpm, npm, and yarn workspaces (or single packages)
+
+The actual publishing step is up to you - use `npm publish`, `pnpm publish`, or whatever fits your setup. `just-release` handles everything up to creating the release PR.
 
 If this matches your workflow (and it should), `just-release` will make your life easier. If you need something else, this probably isn't the tool for you.
 
