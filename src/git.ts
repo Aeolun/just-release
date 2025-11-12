@@ -33,19 +33,21 @@ async function ensureGitConfig(git: SimpleGit): Promise<void> {
 export async function createReleaseBranch(repoPath: string): Promise<string> {
   const git: SimpleGit = simpleGit(repoPath);
 
-  // Generate branch name with current date
-  const today = new Date().toISOString().split('T')[0];
-  const branchName = `release/${today}`;
-
-  // Check if branch already exists
+  // Check if any release branch already exists
   const branches = await git.branchLocal();
+  const existingReleaseBranch = branches.all.find((b) => b.startsWith('release/'));
 
-  if (branches.all.includes(branchName)) {
-    // Branch exists, switch to it and reset to main
+  let branchName: string;
+
+  if (existingReleaseBranch) {
+    // Reuse existing release branch
+    branchName = existingReleaseBranch;
     await git.checkout(branchName);
     await git.reset(['--hard', 'HEAD']);
   } else {
-    // Create new branch
+    // Create new branch with current date
+    const today = new Date().toISOString().split('T')[0];
+    branchName = `release/${today}`;
     await git.checkoutLocalBranch(branchName);
   }
 

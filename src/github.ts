@@ -50,14 +50,6 @@ export async function createOrUpdatePR(
   const octokit = new Octokit({ auth: token });
   const repoInfo = await getRepoInfo(repoPath);
 
-  // List all branches to find existing release PR
-  const { data: branches } = await octokit.repos.listBranches({
-    owner: repoInfo.owner,
-    repo: repoInfo.repo,
-  });
-
-  const existingReleaseBranch = findExistingReleaseBranch(branches);
-
   // Get default branch (usually main or master)
   const { data: repo } = await octokit.repos.get({
     owner: repoInfo.owner,
@@ -68,29 +60,27 @@ export async function createOrUpdatePR(
   const title = `Release ${version}`;
   const body = `## Release ${version}\n\n${changelogSummary}`;
 
-  if (existingReleaseBranch) {
-    // Find existing PR for this branch
-    const { data: prs } = await octokit.pulls.list({
+  // Check if a PR already exists for this branch
+  const { data: prs } = await octokit.pulls.list({
+    owner: repoInfo.owner,
+    repo: repoInfo.repo,
+    head: `${repoInfo.owner}:${branchName}`,
+    base: baseBranch,
+    state: 'open',
+  });
+
+  if (prs.length > 0) {
+    // Update existing PR
+    const pr = prs[0];
+    await octokit.pulls.update({
       owner: repoInfo.owner,
       repo: repoInfo.repo,
-      head: `${repoInfo.owner}:${existingReleaseBranch}`,
-      base: baseBranch,
-      state: 'open',
+      pull_number: pr.number,
+      title,
+      body,
     });
 
-    if (prs.length > 0) {
-      // Update existing PR
-      const pr = prs[0];
-      await octokit.pulls.update({
-        owner: repoInfo.owner,
-        repo: repoInfo.repo,
-        pull_number: pr.number,
-        title,
-        body,
-      });
-
-      return pr.html_url;
-    }
+    return pr.html_url;
   }
 
   // Create new PR
