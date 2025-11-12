@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.4.0 (2025-11-12)
+
+### Features
+
+- automatically create GitHub releases
+- require full git history, fail on shallow clones
+- context-aware error for shallow clones
+- clarify branch creation vs reuse in output
+
+### Bug Fixes
+
+- reuse existing release branch and PR
+
+### Performance Improvements
+
+- optimize commit history search with staggered fetching
+
+### Documentation
+
+- clarify opinionated philosophy in README
+- clarify package manager support
+
 ## 0.3.0 (2025-11-12)
 
 ### Features
