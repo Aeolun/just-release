@@ -25,6 +25,15 @@ export async function analyzeCommits(
 ): Promise<CommitInfo[]> {
   const git: SimpleGit = simpleGit(repoPath);
 
+  // Check if this is a shallow repository
+  const isShallow = await git.raw(['rev-parse', '--is-shallow-repository']);
+  if (isShallow.trim() === 'true') {
+    throw new Error(
+      'Shallow repository detected. just-release requires full git history.\n' +
+      'Run: git fetch --unshallow'
+    );
+  }
+
   // Fetch commits in stages to optimize performance
   let log = await git.log({ maxCount: 100 });
   let releaseIndex = log.all.findIndex(c => c.message.startsWith('release: '));
