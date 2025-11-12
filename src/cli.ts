@@ -11,9 +11,10 @@ import {
   updatePackageVersions,
   commitAndPush,
 } from './git.js';
-import { createOrUpdatePR } from './github.js';
+import { createOrUpdatePR, createGitHubRelease } from './github.js';
 import { getColors } from './colors.js';
 import { generateChangelogSection, groupCommitsByPackage } from './changelog.js';
+import { simpleGit } from 'simple-git';
 
 const colors = getColors(process.env, process.stdout.isTTY);
 
@@ -54,12 +55,66 @@ function generatePRSummary(commits: CommitInfo[]): string {
     .join('\n\n');
 }
 
+async function runPostRelease(cwd: string) {
+  console.log('📦 Post-release mode detected\n');
+
+  // Check for GITHUB_TOKEN
+  const githubToken = process.env.GITHUB_TOKEN;
+  if (!githubToken) {
+    console.error('❌ GITHUB_TOKEN environment variable is required');
+    process.exit(1);
+  }
+
+  // Get current version from package.json
+  const workspace = await detectWorkspace(cwd);
+  const version = workspace.rootVersion;
+
+  console.log(`📝 Creating GitHub release for v${version}...\n`);
+
+  // Read changelog to get release notes
+  const changelogPath = `${cwd}/CHANGELOG.md`;
+  const { readFile } = await import('node:fs/promises');
+  let releaseNotes = '';
+
+  try {
+    const changelog = await readFile(changelogPath, 'utf-8');
+    // Extract the first version section (everything between first ## and second ##)
+    const match = changelog.match(/## [^\n]+\n([\s\S]*?)(?=\n## |$)/);
+    if (match) {
+      releaseNotes = match[1].trim();
+    }
+  } catch (error) {
+    console.log('   No CHANGELOG.md found, creating release without notes');
+  }
+
+  // Create GitHub release
+  const releaseUrl = await createGitHubRelease(
+    cwd,
+    version,
+    releaseNotes,
+    githubToken
+  );
+
+  console.log(`   Release URL: ${releaseUrl}\n`);
+  console.log('✅ GitHub release created!\n');
+}
+
 async function main() {
   const isDryRun = process.env.CI !== '1';
   const showPrPreview = process.argv.includes('--pr');
   const cwd = process.cwd();
 
   console.log('🚀 just-release\n');
+
+  // Check if we're on a release commit (post-release mode)
+  const git = simpleGit(cwd);
+  const log = await git.log({ maxCount: 1 });
+  const currentCommit = log.latest;
+
+  if (currentCommit && currentCommit.message.startsWith('release:')) {
+    await runPostRelease(cwd);
+    return;
+  }
 
   if (isDryRun) {
     console.log('🔍 Running in DRY-RUN mode (set CI=1 to execute)\n');

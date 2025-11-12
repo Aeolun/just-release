@@ -17,7 +17,9 @@
       "Bash(git push:*)",
       "Bash(bash -c 'NO_COLOR=1 node dist/cli.js --pr')",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

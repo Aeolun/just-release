@@ -105,3 +105,28 @@ export async function createOrUpdatePR(
 
   return pr.html_url;
 }
+
+export async function createGitHubRelease(
+  repoPath: string,
+  version: string,
+  releaseNotes: string,
+  token: string
+): Promise<string> {
+  const octokit = new Octokit({ auth: token });
+  const repoInfo = await getRepoInfo(repoPath);
+
+  const tagName = `v${version}`;
+
+  // Create the release
+  const { data: release } = await octokit.repos.createRelease({
+    owner: repoInfo.owner,
+    repo: repoInfo.repo,
+    tag_name: tagName,
+    name: `Release ${version}`,
+    body: releaseNotes,
+    draft: false,
+    prerelease: false,
+  });
+
+  return release.html_url;
+}
