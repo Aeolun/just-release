@@ -1,6 +1,20 @@
 # just-release
 
-Automated monorepo release tool with conventional commits support.
+The simplest way to release version-synchronized packages on GitHub.
+
+## Philosophy
+
+`just-release` does one thing well: it makes releasing packages with synchronized versions as simple as running a single command.
+
+This tool is **opinionated by design**. It doesn't try to support every weird release workflow - it supports the best one:
+
+- ✅ Conventional commits for automatic version bumping
+- ✅ GitHub for source control
+- ✅ GitHub Actions for automated releases
+- ✅ Per-package changelogs
+- ✅ Unified versioning across all packages
+
+If this matches your workflow (and it should), `just-release` will make your life easier. If you need something else, this probably isn't the tool for you.
 
 ## Features
 
