@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 (2025-11-12)
+
+### Features
+
+- add manual trigger to workflows
+
+### Chores
+
+- rename package to just-release
+
 ## 0.2.0 (2025-11-11)
 
 ### Features
