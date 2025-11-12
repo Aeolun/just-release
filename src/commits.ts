@@ -28,10 +28,18 @@ export async function analyzeCommits(
   // Check if this is a shallow repository
   const isShallow = await git.raw(['rev-parse', '--is-shallow-repository']);
   if (isShallow.trim() === 'true') {
-    throw new Error(
-      'Shallow repository detected. just-release requires full git history.\n' +
-      'Run: git fetch --unshallow'
-    );
+    let errorMessage = 'Shallow repository detected. just-release requires full git history.\n';
+
+    if (process.env.GITHUB_ACTIONS) {
+      errorMessage += '\nAdd fetch-depth: 0 to your checkout action:\n\n';
+      errorMessage += '  - uses: actions/checkout@v4\n';
+      errorMessage += '    with:\n';
+      errorMessage += '      fetch-depth: 0\n';
+    } else {
+      errorMessage += 'Run: git fetch --unshallow';
+    }
+
+    throw new Error(errorMessage);
   }
 
   // Fetch commits in stages to optimize performance
