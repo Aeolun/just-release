@@ -30,7 +30,7 @@ async function ensureGitConfig(git: SimpleGit): Promise<void> {
   await git.addConfig('user.email', 'github-actions[bot]@users.noreply.github.com', false, 'local');
 }
 
-export async function createReleaseBranch(repoPath: string): Promise<string> {
+export async function createReleaseBranch(repoPath: string): Promise<{ name: string; isNew: boolean }> {
   const git: SimpleGit = simpleGit(repoPath);
 
   // Check if any release branch already exists
@@ -38,20 +38,23 @@ export async function createReleaseBranch(repoPath: string): Promise<string> {
   const existingReleaseBranch = branches.all.find((b) => b.startsWith('release/'));
 
   let branchName: string;
+  let isNew: boolean;
 
   if (existingReleaseBranch) {
     // Reuse existing release branch
     branchName = existingReleaseBranch;
+    isNew = false;
     await git.checkout(branchName);
     await git.reset(['--hard', 'HEAD']);
   } else {
     // Create new branch with current date
     const today = new Date().toISOString().split('T')[0];
     branchName = `release/${today}`;
+    isNew = true;
     await git.checkoutLocalBranch(branchName);
   }
 
-  return branchName;
+  return { name: branchName, isNew };
 }
 
 export async function updatePackageVersions(

@@ -278,9 +278,13 @@ async function main() {
     console.log('   Changelogs generated\n');
 
     // Step 5: Create release branch
-    console.log('🌿 Creating release branch...');
-    const branchName = await createReleaseBranch(cwd);
-    console.log(`   Created branch: ${branchName}\n`);
+    console.log('🌿 Preparing release branch...');
+    const releaseBranch = await createReleaseBranch(cwd);
+    if (releaseBranch.isNew) {
+      console.log(`   Created new branch: ${releaseBranch.name}\n`);
+    } else {
+      console.log(`   Reusing existing branch: ${releaseBranch.name}\n`);
+    }
 
     // Step 6: Update package versions
     console.log('📝 Updating package versions...');
@@ -312,7 +316,7 @@ async function main() {
 
     const prUrl = await createOrUpdatePR(
       cwd,
-      branchName,
+      releaseBranch.name,
       versionBump.newVersion!,
       changelogSummary,
       githubToken

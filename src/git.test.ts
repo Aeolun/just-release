@@ -55,18 +55,21 @@ test('createReleaseBranch creates branch with current date', async () => {
   try {
     const git: SimpleGit = simpleGit(tmpDir);
 
-    const branchName = await createReleaseBranch(tmpDir);
+    const releaseBranch = await createReleaseBranch(tmpDir);
+
+    // Should be a new branch
+    assert.strictEqual(releaseBranch.isNew, true);
 
     // Branch name should match release/YYYY-MM-DD format
-    assert.ok(branchName.match(/^release\/\d{4}-\d{2}-\d{2}$/));
+    assert.ok(releaseBranch.name.match(/^release\/\d{4}-\d{2}-\d{2}$/));
 
     // Branch should exist
     const branches = await git.branchLocal();
-    assert.ok(branches.all.includes(branchName));
+    assert.ok(branches.all.includes(releaseBranch.name));
 
     // Should be on the release branch
     const currentBranch = await git.revparse(['--abbrev-ref', 'HEAD']);
-    assert.strictEqual(currentBranch.trim(), branchName);
+    assert.strictEqual(currentBranch.trim(), releaseBranch.name);
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }
