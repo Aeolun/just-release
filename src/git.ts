@@ -33,19 +33,36 @@ async function ensureGitConfig(git: SimpleGit): Promise<void> {
 export async function createReleaseBranch(repoPath: string): Promise<{ name: string; isNew: boolean }> {
   const git: SimpleGit = simpleGit(repoPath);
 
-  // Check if any release branch already exists
-  const branches = await git.branchLocal();
-  const existingReleaseBranch = branches.all.find((b) => b.startsWith('release/'));
+  // Check both local and remote branches for existing release branches
+  const branches = await git.branch(['-a']); // -a includes remote branches
+  const allBranches = branches.all;
+
+  // Look for release branches (local or remote)
+  const existingReleaseBranch = allBranches.find((b) =>
+    b.startsWith('release/') || b.includes('remotes/origin/release/')
+  );
 
   let branchName: string;
   let isNew: boolean;
 
   if (existingReleaseBranch) {
-    // Reuse existing release branch
-    branchName = existingReleaseBranch;
+    // Extract branch name (remove remotes/origin/ prefix if present)
+    branchName = existingReleaseBranch.replace('remotes/origin/', '');
     isNew = false;
-    await git.checkout(branchName);
-    await git.reset(['--hard', 'HEAD']);
+
+    // Get current commit SHA (we should be on main)
+    const currentCommit = await git.revparse(['HEAD']);
+
+    // Checkout the branch (creating local tracking branch if needed)
+    try {
+      await git.checkout(branchName);
+    } catch {
+      // Branch doesn't exist locally, create it tracking the remote
+      await git.checkoutBranch(branchName, `origin/${branchName}`);
+    }
+
+    // Reset to main's current state
+    await git.reset(['--hard', currentCommit.trim()]);
   } else {
     // Create new branch with current date
     const today = new Date().toISOString().split('T')[0];
