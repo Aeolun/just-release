@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 (2025-11-13)
+
+### Bug Fixes
+
+- set permissions at job level for OIDC token
+
 ## 0.4.0 (2025-11-13)
 
 ### Features
