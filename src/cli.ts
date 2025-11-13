@@ -268,16 +268,7 @@ async function main() {
       process.exit(0);
     }
 
-    // Step 4: Generate changelogs
-    console.log('📄 Generating changelogs...');
-    await generateChangelogs(
-      versionBump.newVersion!,
-      commits,
-      workspace.packages
-    );
-    console.log('   Changelogs generated\n');
-
-    // Step 5: Create release branch
+    // Step 4: Create release branch
     console.log('🌿 Preparing release branch...');
     const releaseBranch = await createReleaseBranch(cwd);
     if (releaseBranch.isNew) {
@@ -285,6 +276,15 @@ async function main() {
     } else {
       console.log(`   Reusing existing branch: ${releaseBranch.name}\n`);
     }
+
+    // Step 5: Generate changelogs
+    console.log('📄 Generating changelogs...');
+    await generateChangelogs(
+      versionBump.newVersion!,
+      commits,
+      workspace.packages
+    );
+    console.log('   Changelogs generated\n');
 
     // Step 6: Update package versions
     console.log('📝 Updating package versions...');
