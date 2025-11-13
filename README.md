@@ -150,7 +150,22 @@ jobs:
 
 ### Publishing
 
-Create `.github/workflows/publish.yml` to publish when release PR is merged:
+`just-release` uses **npm's trusted publishing** with OIDC - no npm tokens required.
+
+#### Setup npm Trusted Publishing
+
+1. Go to https://www.npmjs.com/package/YOUR-PACKAGE-NAME/access
+2. Click "Publishing access" → "Add a trusted publisher"
+3. Configure:
+   - **Source**: GitHub Actions
+   - **Repository owner**: Your GitHub username/org (case-sensitive!)
+   - **Repository name**: Your repo name
+   - **Workflow filename**: `publish.yml` (optional but recommended)
+   - **Environment**: leave blank
+
+#### Create Publish Workflow
+
+Create `.github/workflows/publish.yml`:
 
 ```yaml
 name: Publish
@@ -159,6 +174,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -167,8 +183,10 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Only run if commit message starts with "release:"
     if: startsWith(github.event.head_commit.message, 'release:')
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -183,13 +201,18 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - run: pnpm install
-
       - run: pnpm build
 
-      - run: pnpm publish -r --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Upgrade npm for provenance support (GitHub runners ship with old npm)
+      - run: npm install -g npm@latest
+
+      - run: pnpm publish --access public --provenance
 ```
+
+**Important:**
+- Your repository must be **public** for provenance to work
+- `package.json` must have a `repository` field matching your GitHub repo
+- No `NPM_TOKEN` needed - authentication uses OIDC
 
 ## Single-Package vs Monorepo
 
@@ -203,8 +226,11 @@ This means you can use `just-release` for both monorepos and single-package repo
 ## Requirements
 
 - Node.js >= 18
+- **Public** GitHub repository (required for npm provenance)
 - Git repository with `origin` remote pointing to GitHub
-- Root `package.json` with `version` field
+- Root `package.json` with:
+  - `version` field
+  - `repository` field pointing to your GitHub repo
 - Optional: Workspace configuration in `pnpm-workspace.yaml` or `package.json`
 
 ## License
