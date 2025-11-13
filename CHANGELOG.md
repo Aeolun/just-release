@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.0 (2025-11-13)
+
+### Features
+
+- automatically create GitHub releases
+- require full git history, fail on shallow clones
+- context-aware error for shallow clones
+- clarify branch creation vs reuse in output
+- enable npm provenance for trusted publishing
+
+### Bug Fixes
+
+- reuse existing release branch and PR
+- check remote branches when looking for existing release branch
+- create release branch before making file changes
+- close old release PRs when creating a new one
+
+### Performance Improvements
+
+- optimize commit history search with staggered fetching
+
+### Documentation
+
+- clarify opinionated philosophy in README
+- clarify package manager support
+
 ## 0.3.0 (2025-11-12)
 
 ### Features
