@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1 (2025-11-13)
+
+### Bug Fixes
+
+- remove extra permissions instance
+- upgrade npm for provenance support on GitHub runners
+
 ## 0.5.0 (2025-11-13)
 
 ### Features
