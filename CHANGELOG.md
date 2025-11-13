@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 (2025-11-13)
+
+### Features
+
+- use OIDC for npm authentication instead of token
+
 ## 0.4.1 (2025-11-13)
 
 ### Bug Fixes
