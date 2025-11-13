@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if commit message starts with "release:"
     if: startsWith(github.event.head_commit.message, 'release:')
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
