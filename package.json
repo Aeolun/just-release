@@ -24,6 +24,10 @@
   ],
   "author": "",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aeolun/just-release"
+  },
   "dependencies": {
     "@octokit/rest": "^22.0.1",
     "conventional-commits-parser": "^6.2.1",
