@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 (2025-11-13)
+
+### Bug Fixes
+
+- add repository field to package.json for provenance
+
 ## 0.5.1 (2025-11-13)
 
 ### Bug Fixes
