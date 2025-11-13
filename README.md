@@ -150,9 +150,11 @@ jobs:
 
 ### Publishing
 
-`just-release` uses **npm's trusted publishing** with OIDC - no npm tokens required.
+`just-release` uses **trusted publishing** with OIDC - no npm tokens required.
 
-#### Setup npm Trusted Publishing
+This works with npmjs.org or any custom registry that supports trusted publishing and provenance.
+
+#### Setup Trusted Publishing (npmjs.org)
 
 1. Go to https://www.npmjs.com/package/YOUR-PACKAGE-NAME/access
 2. Click "Publishing access" → "Add a trusted publisher"
@@ -162,6 +164,8 @@ jobs:
    - **Repository name**: Your repo name
    - **Workflow filename**: `publish.yml` (optional but recommended)
    - **Environment**: leave blank
+
+For custom registries, consult their documentation for trusted publishing setup.
 
 #### Create Publish Workflow
 
