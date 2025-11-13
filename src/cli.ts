@@ -314,7 +314,7 @@ async function main() {
     // Build changelog summary for PR body
     const changelogSummary = generatePRSummary(commits);
 
-    const prUrl = await createOrUpdatePR(
+    const prResult = await createOrUpdatePR(
       cwd,
       releaseBranch.name,
       versionBump.newVersion!,
@@ -322,7 +322,11 @@ async function main() {
       githubToken
     );
 
-    console.log(`   PR URL: ${prUrl}\n`);
+    if (prResult.isNew) {
+      console.log(`   Created new PR: ${prResult.url}\n`);
+    } else {
+      console.log(`   Updated existing PR: ${prResult.url}\n`);
+    }
     console.log('✅ Release process complete!\n');
   } catch (error) {
     console.error('\n❌ Error:', error instanceof Error ? error.message : error);

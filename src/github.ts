@@ -46,7 +46,7 @@ export async function createOrUpdatePR(
   version: string,
   changelogSummary: string,
   token: string
-): Promise<string> {
+): Promise<{ url: string; isNew: boolean }> {
   const octokit = new Octokit({ auth: token });
   const repoInfo = await getRepoInfo(repoPath);
 
@@ -61,7 +61,7 @@ export async function createOrUpdatePR(
   const body = `## Release ${version}\n\n${changelogSummary}`;
 
   // Check if a PR already exists for this branch
-  const { data: prs } = await octokit.pulls.list({
+  const { data: prsForBranch } = await octokit.pulls.list({
     owner: repoInfo.owner,
     repo: repoInfo.repo,
     head: `${repoInfo.owner}:${branchName}`,
@@ -69,9 +69,9 @@ export async function createOrUpdatePR(
     state: 'open',
   });
 
-  if (prs.length > 0) {
-    // Update existing PR
-    const pr = prs[0];
+  if (prsForBranch.length > 0) {
+    // Update existing PR for this branch
+    const pr = prsForBranch[0];
     await octokit.pulls.update({
       owner: repoInfo.owner,
       repo: repoInfo.repo,
@@ -80,7 +80,28 @@ export async function createOrUpdatePR(
       body,
     });
 
-    return pr.html_url;
+    return { url: pr.html_url, isNew: false };
+  }
+
+  // Check for any other open release PRs and close them
+  const { data: allPrs } = await octokit.pulls.list({
+    owner: repoInfo.owner,
+    repo: repoInfo.repo,
+    base: baseBranch,
+    state: 'open',
+  });
+
+  const otherReleasePrs = allPrs.filter((pr) =>
+    pr.title.startsWith('Release ') && pr.head.ref.startsWith('release/')
+  );
+
+  for (const oldPr of otherReleasePrs) {
+    await octokit.pulls.update({
+      owner: repoInfo.owner,
+      repo: repoInfo.repo,
+      pull_number: oldPr.number,
+      state: 'closed',
+    });
   }
 
   // Create new PR
@@ -93,7 +114,7 @@ export async function createOrUpdatePR(
     body,
   });
 
-  return pr.html_url;
+  return { url: pr.html_url, isNew: true };
 }
 
 export async function createGitHubRelease(
