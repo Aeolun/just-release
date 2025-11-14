@@ -174,6 +174,43 @@ jobs:
         run: pnpm just-release
 ```
 
+#### CI Workflow (Optional)
+
+If you have a CI workflow for testing, you should skip it on release commits to avoid conflicts:
+
+Create `.github/workflows/ci.yml`:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Skip CI on release commits - the publish workflow handles those
+    if: "!startsWith(github.event.head_commit.message, 'release:')"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - run: pnpm install
+      - run: pnpm test
+      - run: pnpm build
+```
+
 ### Publishing
 
 `just-release` uses **trusted publishing** with OIDC - no npm tokens required.
