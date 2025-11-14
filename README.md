@@ -278,7 +278,11 @@ jobs:
 
 **Important:**
 - Your repository must be **public** for provenance to work
-- `package.json` must have a `repository` field matching your GitHub repo
+- `package.json` must have a `repository` field matching your GitHub repo **exactly**:
+  - Format: `https://github.com/Owner/repo-name` (no `git+` prefix, no `.git` suffix)
+  - Case-sensitive: Owner name must match exactly (e.g., `Aeolun`, not `aeolun`)
+  - Example (correct): `"repository": "https://github.com/Aeolun/dijkstra-calculator"`
+  - Example (incorrect): `"repository": { "url": "git+https://github.com/aeolun/dijkstra-calculator.git" }`
 - No `NPM_TOKEN` needed - authentication uses OIDC
 
 ## Single-Package vs Monorepo
@@ -297,7 +301,7 @@ This means you can use `just-release` for both monorepos and single-package repo
 - Git repository with `origin` remote pointing to GitHub
 - Root `package.json` with:
   - `version` field
-  - `repository` field pointing to your GitHub repo
+  - `repository` field in the format `https://github.com/Owner/repo-name` (case-sensitive, no `git+` or `.git`)
 - Optional: Workspace configuration in `pnpm-workspace.yaml` or `package.json`
 
 ## License
