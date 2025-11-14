@@ -108,6 +108,32 @@ BREAKING CHANGE: The old API has been removed. Use the new API instead.
 
 ### GitHub Actions
 
+#### Repository Permissions
+
+**Important:** Your repository (or organization) must allow GitHub Actions to create pull requests, or the workflow will fail.
+
+##### Organization-Level Setting (Recommended)
+
+Set this once for all repositories in your organization:
+
+1. Go to your organization's **Settings** → **Actions** → **General**
+2. Scroll to **Workflow permissions**
+3. Enable **"Allow GitHub Actions to create and approve pull requests"**
+
+Once enabled at the organization level, this setting will apply to all repositories in the organization (unless individually overridden).
+
+##### Repository-Level Setting
+
+If you're not using organization-level settings, configure each repository individually:
+
+1. Go to your repository's **Settings** → **Actions** → **General**
+2. Scroll to **Workflow permissions**
+3. Enable **"Allow GitHub Actions to create and approve pull requests"**
+
+**Note:** If your organization disables this setting, the repository-level option will be grayed out. You must enable it at the organization level first.
+
+#### Workflow Configuration
+
 Create `.github/workflows/release.yml`:
 
 ```yaml
