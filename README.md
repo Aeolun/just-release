@@ -151,6 +151,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Skip if this is already a release commit (from merging a release PR)
+    if: "!startsWith(github.event.head_commit.message, 'release:')"
     steps:
       - uses: actions/checkout@v4
         with:
