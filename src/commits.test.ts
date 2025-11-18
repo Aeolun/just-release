@@ -191,3 +191,44 @@ test('analyzeCommits attributes all changes to root in single-package repo', asy
     rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('analyzeCommits recognizes flexible release commit formats', async () => {
+  const tmpDir = await mkdtemp(join(tmpdir(), 'test-git-'));
+  const git: SimpleGit = simpleGit(tmpDir);
+
+  try {
+    await git.init();
+    await git.addConfig('user.name', 'Test User');
+    await git.addConfig('user.email', 'test@example.com');
+
+    // Create single package repo
+    await writeFile(
+      join(tmpDir, 'package.json'),
+      JSON.stringify({ name: 'my-app', version: '1.0.0' })
+    );
+    await git.add('package.json');
+    await git.commit('chore: initial commit');
+
+    // Use "chore: release v1.0.0" format instead of "release: 1.0.0"
+    await git.commit('chore: release v1.0.0', ['--allow-empty']);
+
+    // Add commits after the release
+    await mkdir(join(tmpDir, 'src'), { recursive: true });
+    await writeFile(join(tmpDir, 'src', 'index.ts'), 'console.log("hello")');
+    await git.add('.');
+    await git.commit('feat: add hello world');
+
+    const workspacePackages = [
+      { name: 'my-app', version: '1.0.0', path: tmpDir },
+    ];
+
+    const commits = await analyzeCommits(tmpDir, workspacePackages);
+
+    // Should only get commits after the "chore: release v1.0.0" commit
+    assert.strictEqual(commits.length, 1);
+    assert.strictEqual(commits[0].type, 'feat');
+    assert.strictEqual(commits[0].subject, 'add hello world');
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

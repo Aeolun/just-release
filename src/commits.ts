@@ -4,6 +4,7 @@
 import { simpleGit, SimpleGit, DefaultLogFields } from 'simple-git';
 import * as conventionalCommitsParser from 'conventional-commits-parser';
 import { WorkspacePackage } from './workspace.js';
+import { isReleaseCommit } from './release-commit.js';
 
 const { CommitParser } = conventionalCommitsParser as any;
 const parser = new CommitParser();
@@ -44,19 +45,19 @@ export async function analyzeCommits(
 
   // Fetch commits in stages to optimize performance
   let log = await git.log({ maxCount: 100 });
-  let releaseIndex = log.all.findIndex(c => c.message.startsWith('release: '));
+  let releaseIndex = log.all.findIndex(c => isReleaseCommit(c.message));
 
   // If no release found in first 100, try 1000
   if (releaseIndex === -1 && log.total && log.total > 100) {
     log = await git.log({ maxCount: 1000 });
-    releaseIndex = log.all.findIndex(c => c.message.startsWith('release: '));
+    releaseIndex = log.all.findIndex(c => isReleaseCommit(c.message));
   }
 
   // If still no release found, warn and fetch all
   if (releaseIndex === -1 && log.total && log.total > 1000) {
     console.warn('   ⚠️  No release commit found in last 1000 commits. Searching full history (this may take a while)...');
     log = await git.log();
-    releaseIndex = log.all.findIndex(c => c.message.startsWith('release: '));
+    releaseIndex = log.all.findIndex(c => isReleaseCommit(c.message));
   }
 
   // Only analyze commits since last release (or all if no release found)

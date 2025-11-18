@@ -15,6 +15,7 @@ import { createOrUpdatePR, createGitHubRelease } from './github.js';
 import { getColors } from './colors.js';
 import { generateChangelogSection, groupCommitsByPackage } from './changelog.js';
 import { simpleGit } from 'simple-git';
+import { isReleaseCommit } from './release-commit.js';
 
 const colors = getColors(process.env, process.stdout.isTTY);
 
@@ -111,7 +112,7 @@ async function main() {
   const log = await git.log({ maxCount: 1 });
   const currentCommit = log.latest;
 
-  if (currentCommit && currentCommit.message.startsWith('release:')) {
+  if (currentCommit && isReleaseCommit(currentCommit.message)) {
     await runPostRelease(cwd);
     return;
   }
