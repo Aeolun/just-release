@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.6.0 (2025-11-18)
+
+### Features
+
+- support flexible release commit formats
+
+### Documentation
+
+- clarify trusted publishing is the only supported method
+- clarify custom registries are supported
+- add GitHub Actions PR creation permissions requirement
+- add example CI workflow that skips release commits
+- clarify repository field format requirements for provenance
+- skip Release workflow on release commits
+- remove CI workflow example
+
+### Chores
+
+- ignore local Claude settings
+
 ## 0.5.2 (2025-11-13)
 
 ### Bug Fixes
