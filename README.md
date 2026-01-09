@@ -276,6 +276,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
