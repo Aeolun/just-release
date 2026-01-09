@@ -178,11 +178,15 @@ jobs:
 
 ### Publishing
 
-`just-release` uses **trusted publishing** with OIDC - no npm tokens required.
+`just-release` handles versioning, changelogs, and release PRs - but **publishing to npm is up to you**. This separation gives you full control over how and where you publish.
 
-This works with npmjs.org or any custom registry that supports trusted publishing and provenance.
+Below are two common approaches for publishing after a release PR is merged.
 
-#### Setup Trusted Publishing (npmjs.org)
+#### Option 1: Trusted Publishing (Recommended)
+
+Trusted publishing uses OIDC - no npm tokens required. This works with npmjs.org or any registry that supports trusted publishing and provenance.
+
+##### Setup Trusted Publishing (npmjs.org)
 
 1. Go to https://www.npmjs.com/package/YOUR-PACKAGE-NAME/access
 2. Click "Publishing access" → "Add a trusted publisher"
@@ -195,7 +199,7 @@ This works with npmjs.org or any custom registry that supports trusted publishin
 
 For custom registries, consult their documentation for trusted publishing setup.
 
-#### Create Publish Workflow
+##### Create Publish Workflow
 
 Create `.github/workflows/publish.yml`:
 
@@ -250,6 +254,48 @@ jobs:
   - Example (incorrect): `"repository": { "url": "git+https://github.com/aeolun/dijkstra-calculator.git" }`
 - No `NPM_TOKEN` needed - authentication uses OIDC
 
+#### Option 2: NPM Token
+
+If your registry doesn't support trusted publishing, you can use a traditional npm token instead.
+
+1. Create an npm access token at https://www.npmjs.com/settings/YOUR-USERNAME/tokens
+2. Add it as a repository secret named `NPM_TOKEN` in your GitHub repository settings
+
+Create `.github/workflows/publish.yml`:
+
+```yaml
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.head_commit.message, 'release:')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: pnpm install
+      - run: pnpm build
+
+      - run: pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+```
+
 ## Single-Package vs Monorepo
 
 `just-release` automatically adapts to your repository structure:
@@ -262,11 +308,10 @@ This means you can use `just-release` for both monorepos and single-package repo
 ## Requirements
 
 - Node.js >= 18
-- **Public** GitHub repository (required for npm provenance)
 - Git repository with `origin` remote pointing to GitHub
-- Root `package.json` with:
-  - `version` field
-  - `repository` field in the format `https://github.com/Owner/repo-name` (case-sensitive, no `git+` or `.git`)
+- **Public** GitHub repository (only required if using trusted publishing with provenance)
+- Root `package.json` with a `version` field
+- For trusted publishing: `repository` field in the format `https://github.com/Owner/repo-name` (case-sensitive, no `git+` or `.git`)
 - Optional: Workspace configuration in `pnpm-workspace.yaml` or `package.json`
 
 ## License
