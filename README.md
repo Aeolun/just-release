@@ -243,6 +243,11 @@ jobs:
       - run: npm install -g npm@latest
 
       - run: pnpm publish --access public --provenance
+
+      # Create GitHub release with changelog notes
+      - run: pnpm just-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 **Important:**
@@ -294,6 +299,11 @@ jobs:
       - run: pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Create GitHub release with changelog notes
+      - run: pnpm just-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Single-Package vs Monorepo
