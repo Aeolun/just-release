@@ -11,7 +11,7 @@ import {
   updatePackageVersions,
   commitAndPush,
 } from './git.js';
-import { createOrUpdatePR, createGitHubRelease } from './github.js';
+import { createOrUpdatePR, createOrUpdateGitHubRelease } from './github.js';
 import { getColors } from './colors.js';
 import { generateChangelogSection, groupCommitsByPackage } from './changelog.js';
 import { simpleGit } from 'simple-git';
@@ -88,8 +88,8 @@ async function runPostRelease(cwd: string) {
     console.log('   No CHANGELOG.md found, creating release without notes');
   }
 
-  // Create GitHub release
-  const releaseUrl = await createGitHubRelease(
+  // Create or update GitHub release
+  const { url: releaseUrl, isNew } = await createOrUpdateGitHubRelease(
     cwd,
     version,
     releaseNotes,
@@ -97,7 +97,11 @@ async function runPostRelease(cwd: string) {
   );
 
   console.log(`   Release URL: ${releaseUrl}\n`);
-  console.log('✅ GitHub release created!\n');
+  if (isNew) {
+    console.log('✅ GitHub release created!\n');
+  } else {
+    console.log('✅ GitHub release updated!\n');
+  }
 }
 
 async function main() {

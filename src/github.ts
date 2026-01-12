@@ -117,18 +117,72 @@ export async function createOrUpdatePR(
   return { url: pr.html_url, isNew: true };
 }
 
-export async function createGitHubRelease(
+export async function createOrUpdateGitHubRelease(
   repoPath: string,
   version: string,
   releaseNotes: string,
   token: string
-): Promise<string> {
+): Promise<{ url: string; isNew: boolean }> {
   const octokit = new Octokit({ auth: token });
   const repoInfo = await getRepoInfo(repoPath);
+  const git: SimpleGit = simpleGit(repoPath);
 
   const tagName = `v${version}`;
 
-  // Create the release
+  // Get the current HEAD commit SHA
+  const currentCommit = await git.revparse(['HEAD']);
+
+  // Check if release already exists
+  let existingRelease;
+  try {
+    const { data } = await octokit.repos.getReleaseByTag({
+      owner: repoInfo.owner,
+      repo: repoInfo.repo,
+      tag: tagName,
+    });
+    existingRelease = data;
+  } catch (error) {
+    // Release doesn't exist, we'll create a new one
+  }
+
+  if (existingRelease) {
+    // Get the old commit SHA from the existing tag
+    const { data: tagRef } = await octokit.git.getRef({
+      owner: repoInfo.owner,
+      repo: repoInfo.repo,
+      ref: `tags/${tagName}`,
+    });
+    const oldCommit = tagRef.object.sha;
+    const newCommit = currentCommit.trim();
+
+    // Update the tag to point to the current commit
+    await octokit.git.updateRef({
+      owner: repoInfo.owner,
+      repo: repoInfo.repo,
+      ref: `tags/${tagName}`,
+      sha: newCommit,
+      force: true,
+    });
+
+    // Append SHA update note to the release notes
+    const timestamp = new Date().toISOString();
+    const updatedNotes =
+      `${releaseNotes}\n\n---\n` +
+      `*Tag updated from \`${oldCommit.slice(0, 7)}\` to \`${newCommit.slice(0, 7)}\` at ${timestamp}*`;
+
+    // Update the release notes
+    await octokit.repos.updateRelease({
+      owner: repoInfo.owner,
+      repo: repoInfo.repo,
+      release_id: existingRelease.id,
+      name: `Release ${version}`,
+      body: updatedNotes,
+    });
+
+    return { url: existingRelease.html_url, isNew: false };
+  }
+
+  // Create new release
   const { data: release } = await octokit.repos.createRelease({
     owner: repoInfo.owner,
     repo: repoInfo.repo,
@@ -139,5 +193,6 @@ export async function createGitHubRelease(
     prerelease: false,
   });
 
-  return release.html_url;
+  return { url: release.html_url, isNew: true };
 }
+
