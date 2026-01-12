@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 (2026-01-12)
+
+### Features
+
+- update existing GitHub release instead of failing
+
+### Documentation
+
+- add npm token publishing option
+- add GitHub release step to publish workflow examples
+- add contents:write permission to npm token workflow
+
 ## 0.6.0 (2025-11-18)
 
 ### Features
