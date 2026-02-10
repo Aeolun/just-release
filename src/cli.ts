@@ -76,11 +76,12 @@ async function main() {
   console.log('🚀 just-release\n');
 
   // Check if we're on a release commit (post-release mode)
+  // Check recent commits to handle both squash merges (HEAD is release commit)
+  // and regular merges (HEAD is merge commit, release commit is a parent)
   const git = simpleGit(cwd);
-  const log = await git.log({ maxCount: 1 });
-  const currentCommit = log.latest;
+  const log = await git.log({ maxCount: 3 });
 
-  if (currentCommit && isReleaseCommit(currentCommit.message)) {
+  if (log.all.some((c) => isReleaseCommit(c.message))) {
     await runPostRelease(cwd);
     return;
   }

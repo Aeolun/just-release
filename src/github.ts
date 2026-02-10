@@ -57,7 +57,7 @@ export async function createOrUpdatePR(
   });
   const baseBranch = repo.default_branch;
 
-  const title = `Release ${version}`;
+  const title = `release: ${version}`;
   const body = `## Release ${version}\n\n${changelogSummary}`;
 
   // Check if a PR already exists for this branch
@@ -92,7 +92,7 @@ export async function createOrUpdatePR(
   });
 
   const otherReleasePrs = allPrs.filter((pr) =>
-    pr.title.startsWith('Release ') && pr.head.ref.startsWith('release/')
+    (pr.title.startsWith('Release ') || pr.title.startsWith('release: ')) && pr.head.ref.startsWith('release/')
   );
 
   for (const oldPr of otherReleasePrs) {

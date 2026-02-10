@@ -151,8 +151,10 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Skip if this is already a release commit (from merging a release PR)
-    if: "!startsWith(github.event.head_commit.message, 'release:')"
+    # Skip if this is a release commit (squash merge) or merge of a release branch (regular merge)
+    if: >-
+      !startsWith(github.event.head_commit.message, 'release:') &&
+      !(startsWith(github.event.head_commit.message, 'Merge') && contains(github.event.head_commit.message, 'release/'))
     steps:
       - uses: actions/checkout@v4
         with:
@@ -217,7 +219,9 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: startsWith(github.event.head_commit.message, 'release:')
+    if: >-
+      startsWith(github.event.head_commit.message, 'release:') ||
+      (startsWith(github.event.head_commit.message, 'Merge') && contains(github.event.head_commit.message, 'release/'))
     permissions:
       contents: write
       id-token: write
@@ -278,7 +282,9 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: startsWith(github.event.head_commit.message, 'release:')
+    if: >-
+      startsWith(github.event.head_commit.message, 'release:') ||
+      (startsWith(github.event.head_commit.message, 'Merge') && contains(github.event.head_commit.message, 'release/'))
     steps:
       - uses: actions/checkout@v4
 
