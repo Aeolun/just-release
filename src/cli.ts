@@ -19,7 +19,7 @@ import { isReleaseCommit } from './release-commit.js';
 
 const colors = getColors(process.env, process.stdout.isTTY);
 
-function getCommitPrefix(commit: CommitInfo): string {
+export function getCommitPrefix(commit: CommitInfo): string {
   if (commit.breaking) return '⚠️ BREAKING: ';
   switch (commit.type) {
     case 'feat': return '✨ ';
@@ -32,14 +32,16 @@ function getCommitPrefix(commit: CommitInfo): string {
     case 'style': return '💄 ';
     case 'build': return '📦 ';
     case 'ci': return '👷 ';
-    default: return '';
+    default: return '❓ '; // Unknown/non-semantic commit type
   }
 }
 
-function generatePRSummary(commits: CommitInfo[]): string {
+export function generatePRSummary(commits: CommitInfo[]): string {
   return commits
     .map((c) => {
-      let summary = `- ${c.hash}: ${getCommitPrefix(c)}${c.subject}`;
+      // Use subject if available, otherwise fall back to rawMessage (first line of commit)
+      const description = c.subject ?? c.rawMessage;
+      let summary = `- ${c.hash}: ${getCommitPrefix(c)}${description}`;
 
       // Include body if present
       if (c.body && c.body.trim()) {
@@ -339,4 +341,11 @@ async function main() {
   }
 }
 
-main();
+// Only run main when executed directly (not when imported by tests)
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] && resolve(process.argv[1]) === __filename) {
+  main();
+}

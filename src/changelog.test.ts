@@ -3,7 +3,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { generateChangelogs } from './changelog.js';
+import { generateChangelogs, generateChangelogSection } from './changelog.js';
 import { CommitInfo } from './commits.js';
 import { mkdtemp, writeFile, mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -26,6 +26,7 @@ test('generateChangelogs creates changelog for package with changes', async () =
         breaking: false,
         packages: ['pkg-a'],
         files: ['packages/pkg-a/index.js'],
+        rawMessage: 'feat: add new feature',
       },
     ];
 
@@ -65,6 +66,7 @@ test('generateChangelogs skips package with no changes', async () => {
         breaking: false,
         packages: ['pkg-a'],
         files: ['packages/pkg-a/index.js'],
+        rawMessage: 'feat: add new feature',
       },
     ];
 
@@ -111,6 +113,7 @@ test('generateChangelogs groups commits by type', async () => {
         breaking: false,
         packages: ['pkg-a'],
         files: ['packages/pkg-a/index.js'],
+        rawMessage: 'feat: add feature',
       },
       {
         hash: 'def456',
@@ -121,6 +124,7 @@ test('generateChangelogs groups commits by type', async () => {
         breaking: false,
         packages: ['pkg-a'],
         files: ['packages/pkg-a/index.js'],
+        rawMessage: 'fix: fix bug',
       },
     ];
 
@@ -160,6 +164,7 @@ test('generateChangelogs highlights breaking changes', async () => {
         breaking: true,
         packages: ['pkg-a'],
         files: ['packages/pkg-a/index.js'],
+        rawMessage: 'feat!: breaking change',
       },
     ];
 
@@ -211,6 +216,7 @@ test('generateChangelogs prepends to existing changelog', async () => {
         breaking: false,
         packages: ['pkg-a'],
         files: ['packages/pkg-a/index.js'],
+        rawMessage: 'feat: add new feature',
       },
     ];
 
@@ -237,4 +243,116 @@ test('generateChangelogs prepends to existing changelog', async () => {
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }
+});
+
+test('generateChangelogSection puts non-conventional commits in Other section', () => {
+  const commits: CommitInfo[] = [
+    {
+      hash: 'abc123',
+      type: null,
+      scope: null,
+      subject: null,
+      body: null,
+      breaking: false,
+      packages: ['pkg-a'],
+      files: ['packages/pkg-a/index.js'],
+      rawMessage: 'Update readme and fix typos',
+    },
+  ];
+
+  const section = generateChangelogSection('1.1.0', commits);
+
+  assert.ok(section.includes('### Other'));
+  assert.ok(section.includes('Update readme and fix typos'));
+  assert.ok(!section.includes('### Features'));
+  assert.ok(!section.includes('### Bug Fixes'));
+});
+
+test('generateChangelogSection uses rawMessage fallback when subject is null', () => {
+  const commits: CommitInfo[] = [
+    {
+      hash: 'abc123',
+      type: null,
+      scope: null,
+      subject: null,
+      body: null,
+      breaking: false,
+      packages: ['pkg-a'],
+      files: ['packages/pkg-a/index.js'],
+      rawMessage: 'Just a plain commit message',
+    },
+  ];
+
+  const section = generateChangelogSection('1.0.1', commits);
+
+  assert.ok(section.includes('- Just a plain commit message'));
+});
+
+test('generateChangelogSection handles mix of conventional and non-conventional commits', () => {
+  const commits: CommitInfo[] = [
+    {
+      hash: 'abc123',
+      type: 'feat',
+      scope: null,
+      subject: 'add new feature',
+      body: null,
+      breaking: false,
+      packages: ['pkg-a'],
+      files: ['packages/pkg-a/index.js'],
+      rawMessage: 'feat: add new feature',
+    },
+    {
+      hash: 'def456',
+      type: null,
+      scope: null,
+      subject: null,
+      body: null,
+      breaking: false,
+      packages: ['pkg-a'],
+      files: ['packages/pkg-a/README.md'],
+      rawMessage: 'Update documentation',
+    },
+    {
+      hash: 'ghi789',
+      type: 'fix',
+      scope: null,
+      subject: 'resolve crash on startup',
+      body: null,
+      breaking: false,
+      packages: ['pkg-a'],
+      files: ['packages/pkg-a/index.js'],
+      rawMessage: 'fix: resolve crash on startup',
+    },
+  ];
+
+  const section = generateChangelogSection('1.1.0', commits);
+
+  assert.ok(section.includes('### Features'));
+  assert.ok(section.includes('add new feature'));
+  assert.ok(section.includes('### Bug Fixes'));
+  assert.ok(section.includes('resolve crash on startup'));
+  assert.ok(section.includes('### Other'));
+  assert.ok(section.includes('Update documentation'));
+});
+
+test('generateChangelogSection does not put breaking non-conventional commits in Other', () => {
+  const commits: CommitInfo[] = [
+    {
+      hash: 'abc123',
+      type: null,
+      scope: null,
+      subject: null,
+      body: null,
+      breaking: true,
+      packages: ['pkg-a'],
+      files: ['packages/pkg-a/index.js'],
+      rawMessage: 'Completely rewrite the API',
+    },
+  ];
+
+  const section = generateChangelogSection('2.0.0', commits);
+
+  assert.ok(section.includes('### BREAKING CHANGES'));
+  assert.ok(section.includes('Completely rewrite the API'));
+  assert.ok(!section.includes('### Other'));
 });

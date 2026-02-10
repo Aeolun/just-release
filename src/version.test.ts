@@ -17,6 +17,7 @@ test('calculateVersionBump returns major for breaking changes', () => {
       breaking: true,
       packages: ['pkg-a'],
       files: ['packages/pkg-a/index.js'],
+      rawMessage: 'feat!: breaking change',
     },
   ];
 
@@ -37,6 +38,7 @@ test('calculateVersionBump returns minor for feat commits', () => {
       breaking: false,
       packages: ['pkg-a'],
       files: ['packages/pkg-a/index.js'],
+      rawMessage: 'feat: add feature',
     },
   ];
 
@@ -57,6 +59,7 @@ test('calculateVersionBump returns patch for fix commits', () => {
       breaking: false,
       packages: ['pkg-a'],
       files: ['packages/pkg-a/index.js'],
+      rawMessage: 'fix: fix bug',
     },
   ];
 
@@ -77,6 +80,7 @@ test('calculateVersionBump returns null for only chore commits', () => {
       breaking: false,
       packages: [],
       files: ['README.md'],
+      rawMessage: 'chore: update readme',
     },
   ];
 
@@ -97,6 +101,7 @@ test('calculateVersionBump returns null for only docs commits', () => {
       breaking: false,
       packages: [],
       files: ['docs/README.md'],
+      rawMessage: 'docs: update docs',
     },
   ];
 
@@ -117,6 +122,7 @@ test('calculateVersionBump prioritizes breaking over feat', () => {
       breaking: false,
       packages: ['pkg-a'],
       files: ['packages/pkg-a/index.js'],
+      rawMessage: 'feat: add feature',
     },
     {
       hash: 'def456',
@@ -127,6 +133,7 @@ test('calculateVersionBump prioritizes breaking over feat', () => {
       breaking: true,
       packages: ['pkg-b'],
       files: ['packages/pkg-b/index.js'],
+      rawMessage: 'fix!: breaking fix',
     },
   ];
 
@@ -147,6 +154,7 @@ test('calculateVersionBump prioritizes feat over fix', () => {
       breaking: false,
       packages: ['pkg-a'],
       files: ['packages/pkg-a/index.js'],
+      rawMessage: 'fix: fix bug',
     },
     {
       hash: 'def456',
@@ -157,6 +165,7 @@ test('calculateVersionBump prioritizes feat over fix', () => {
       breaking: false,
       packages: ['pkg-b'],
       files: ['packages/pkg-b/index.js'],
+      rawMessage: 'feat: add feature',
     },
   ];
 
@@ -173,4 +182,57 @@ test('calculateVersionBump returns null for empty commits', () => {
 
   assert.strictEqual(result.bumpType, null);
   assert.strictEqual(result.newVersion, null);
+});
+
+test('calculateVersionBump returns null for only non-conventional commits', () => {
+  const commits: CommitInfo[] = [
+    {
+      hash: 'abc123',
+      type: null,
+      scope: null,
+      subject: null,
+      body: null,
+      breaking: false,
+      packages: ['pkg-a'],
+      files: ['packages/pkg-a/index.js'],
+      rawMessage: 'Update readme',
+    },
+  ];
+
+  const result = calculateVersionBump('1.0.0', commits);
+
+  assert.strictEqual(result.bumpType, null);
+  assert.strictEqual(result.newVersion, null);
+});
+
+test('calculateVersionBump still bumps when non-conventional commits mixed with feat', () => {
+  const commits: CommitInfo[] = [
+    {
+      hash: 'abc123',
+      type: null,
+      scope: null,
+      subject: null,
+      body: null,
+      breaking: false,
+      packages: ['pkg-a'],
+      files: ['packages/pkg-a/index.js'],
+      rawMessage: 'Update readme',
+    },
+    {
+      hash: 'def456',
+      type: 'feat',
+      scope: null,
+      subject: 'add feature',
+      body: null,
+      breaking: false,
+      packages: ['pkg-a'],
+      files: ['packages/pkg-a/index.js'],
+      rawMessage: 'feat: add feature',
+    },
+  ];
+
+  const result = calculateVersionBump('1.0.0', commits);
+
+  assert.strictEqual(result.bumpType, 'minor');
+  assert.strictEqual(result.newVersion, '1.1.0');
 });

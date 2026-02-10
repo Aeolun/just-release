@@ -192,6 +192,63 @@ test('analyzeCommits attributes all changes to root in single-package repo', asy
   }
 });
 
+test('analyzeCommits parses non-conventional commits', async () => {
+  const tmpDir = await setupGitRepo();
+  const git: SimpleGit = simpleGit(tmpDir);
+
+  try {
+    // Add a non-conventional commit (no type: prefix)
+    await writeFile(
+      join(tmpDir, 'packages', 'pkg-a', 'index.js'),
+      '// updated pkg-a'
+    );
+    await git.add('.');
+    await git.commit('Update readme and fix typos');
+
+    const workspacePackages = [
+      { name: 'pkg-a', version: '1.0.0', path: join(tmpDir, 'packages', 'pkg-a') },
+    ];
+
+    const commits = await analyzeCommits(tmpDir, workspacePackages);
+
+    assert.strictEqual(commits.length, 1);
+    assert.strictEqual(commits[0].type, null);
+    assert.strictEqual(commits[0].subject, null);
+    assert.strictEqual(commits[0].rawMessage, 'Update readme and fix typos');
+    assert.strictEqual(commits[0].breaking, false);
+    assert.ok(commits[0].packages.includes('pkg-a'));
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('analyzeCommits sets rawMessage for conventional commits too', async () => {
+  const tmpDir = await setupGitRepo();
+  const git: SimpleGit = simpleGit(tmpDir);
+
+  try {
+    await writeFile(
+      join(tmpDir, 'packages', 'pkg-a', 'index.js'),
+      '// pkg-a feature'
+    );
+    await git.add('.');
+    await git.commit('feat: add new feature to pkg-a');
+
+    const workspacePackages = [
+      { name: 'pkg-a', version: '1.0.0', path: join(tmpDir, 'packages', 'pkg-a') },
+    ];
+
+    const commits = await analyzeCommits(tmpDir, workspacePackages);
+
+    assert.strictEqual(commits.length, 1);
+    assert.strictEqual(commits[0].type, 'feat');
+    assert.strictEqual(commits[0].subject, 'add new feature to pkg-a');
+    assert.strictEqual(commits[0].rawMessage, 'feat: add new feature to pkg-a');
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test('analyzeCommits recognizes flexible release commit formats', async () => {
   const tmpDir = await mkdtemp(join(tmpdir(), 'test-git-'));
   const git: SimpleGit = simpleGit(tmpDir);

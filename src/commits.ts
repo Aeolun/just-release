@@ -18,6 +18,7 @@ export interface CommitInfo {
   breaking: boolean;
   packages: string[];
   files: string[];
+  rawMessage: string; // First line of original commit message (for fallback display)
 }
 
 export async function analyzeCommits(
@@ -107,13 +108,14 @@ export async function analyzeCommits(
 
     commits.push({
       hash: commit.hash,
-      type: parsed.type,
-      scope: parsed.scope,
-      subject: parsed.subject,
-      body: parsed.body,
+      type: parsed.type ?? null,
+      scope: parsed.scope ?? null,
+      subject: parsed.subject ?? null,
+      body: parsed.body ?? null,
       breaking,
       packages: Array.from(affectedPackages),
       files,
+      rawMessage: commit.message, // First line of the original commit message
     });
   }
 

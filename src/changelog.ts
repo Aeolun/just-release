@@ -12,12 +12,20 @@ interface ChangelogEntry {
   breaking: boolean;
 }
 
+// Helper to get display text for a commit (subject or rawMessage fallback)
+function getCommitDisplayText(commit: CommitInfo): string {
+  return commit.subject ?? commit.rawMessage;
+}
+
 export function generateChangelogSection(
   newVersion: string,
   commits: CommitInfo[]
 ): string {
   const today = new Date().toISOString().split('T')[0];
   let versionSection = `## ${newVersion} (${today})\n\n`;
+
+  // Known commit types
+  const knownTypes = new Set(['feat', 'fix', 'perf', 'test', 'docs', 'chore', 'refactor', 'style', 'build', 'ci']);
 
   // Group commits by type
   const breaking = commits.filter((c) => c.breaking);
@@ -33,12 +41,13 @@ export function generateChangelogSection(
   const styles = commits.filter((c) => c.type === 'style');
   const builds = commits.filter((c) => c.type === 'build');
   const ci = commits.filter((c) => c.type === 'ci');
+  const other = commits.filter((c) => !c.breaking && (c.type === null || !knownTypes.has(c.type)));
 
   // Add breaking changes section
   if (breaking.length > 0) {
     versionSection += '### BREAKING CHANGES\n\n';
     for (const commit of breaking) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -47,7 +56,7 @@ export function generateChangelogSection(
   if (features.length > 0) {
     versionSection += '### Features\n\n';
     for (const commit of features) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -56,7 +65,7 @@ export function generateChangelogSection(
   if (fixes.length > 0) {
     versionSection += '### Bug Fixes\n\n';
     for (const commit of fixes) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -65,7 +74,7 @@ export function generateChangelogSection(
   if (perf.length > 0) {
     versionSection += '### Performance Improvements\n\n';
     for (const commit of perf) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -74,7 +83,7 @@ export function generateChangelogSection(
   if (tests.length > 0) {
     versionSection += '### Tests\n\n';
     for (const commit of tests) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -83,7 +92,7 @@ export function generateChangelogSection(
   if (docs.length > 0) {
     versionSection += '### Documentation\n\n';
     for (const commit of docs) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -92,7 +101,7 @@ export function generateChangelogSection(
   if (refactors.length > 0) {
     versionSection += '### Refactoring\n\n';
     for (const commit of refactors) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -101,7 +110,7 @@ export function generateChangelogSection(
   if (chores.length > 0) {
     versionSection += '### Chores\n\n';
     for (const commit of chores) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -110,7 +119,7 @@ export function generateChangelogSection(
   if (styles.length > 0) {
     versionSection += '### Styles\n\n';
     for (const commit of styles) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -119,7 +128,7 @@ export function generateChangelogSection(
   if (builds.length > 0) {
     versionSection += '### Build\n\n';
     for (const commit of builds) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
@@ -128,7 +137,16 @@ export function generateChangelogSection(
   if (ci.length > 0) {
     versionSection += '### CI\n\n';
     for (const commit of ci) {
-      versionSection += `- ${commit.subject}\n`;
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
+    }
+    versionSection += '\n';
+  }
+
+  // Add other/uncategorized commits section
+  if (other.length > 0) {
+    versionSection += '### Other\n\n';
+    for (const commit of other) {
+      versionSection += `- ${getCommitDisplayText(commit)}\n`;
     }
     versionSection += '\n';
   }
