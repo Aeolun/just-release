@@ -3,7 +3,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { getCommitPrefix, generatePRSummary } from './cli.js';
+import { getCommitPrefix, generatePRSummary } from './formatting.js';
 import { CommitInfo } from './commits.js';
 
 test('getCommitPrefix returns correct emoji for conventional types', () => {

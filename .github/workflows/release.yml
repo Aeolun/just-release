@@ -35,6 +35,17 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Smoke test
+        env:
+          CI: 0
+        run: |
+          OUTPUT=$(node dist/cli.js 2>&1)
+          if [ -z "$OUTPUT" ]; then
+            echo "ERROR: just-release produced no output"
+            exit 1
+          fi
+          echo "$OUTPUT"
+
       - name: Create release PR
         env:
           CI: 1

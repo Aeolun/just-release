@@ -16,47 +16,9 @@ import { getColors } from './colors.js';
 import { generateChangelogSection, groupCommitsByPackage } from './changelog.js';
 import { simpleGit } from 'simple-git';
 import { isReleaseCommit } from './release-commit.js';
+import { getCommitPrefix, generatePRSummary } from './formatting.js';
 
 const colors = getColors(process.env, process.stdout.isTTY);
-
-export function getCommitPrefix(commit: CommitInfo): string {
-  if (commit.breaking) return '⚠️ BREAKING: ';
-  switch (commit.type) {
-    case 'feat': return '✨ ';
-    case 'fix': return '🐛 ';
-    case 'perf': return '⚡ ';
-    case 'test': return '✅ ';
-    case 'docs': return '📝 ';
-    case 'refactor': return '♻️ ';
-    case 'chore': return '🔧 ';
-    case 'style': return '💄 ';
-    case 'build': return '📦 ';
-    case 'ci': return '👷 ';
-    default: return '❓ '; // Unknown/non-semantic commit type
-  }
-}
-
-export function generatePRSummary(commits: CommitInfo[]): string {
-  return commits
-    .map((c) => {
-      // Use subject if available, otherwise fall back to rawMessage (first line of commit)
-      const description = c.subject ?? c.rawMessage;
-      let summary = `- ${c.hash}: ${getCommitPrefix(c)}${description}`;
-
-      // Include body if present
-      if (c.body && c.body.trim()) {
-        // Indent the body for better readability (blank line before body)
-        const indentedBody = c.body
-          .split('\n')
-          .map((line) => `  ${line}`)
-          .join('\n');
-        summary += `\n\n${indentedBody}`;
-      }
-
-      return summary;
-    })
-    .join('\n\n');
-}
 
 async function runPostRelease(cwd: string) {
   console.log('📦 Post-release mode detected\n');
@@ -341,11 +303,4 @@ async function main() {
   }
 }
 
-// Only run main when executed directly (not when imported by tests)
-import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
-
-const __filename = fileURLToPath(import.meta.url);
-if (process.argv[1] && resolve(process.argv[1]) === __filename) {
-  main();
-}
+main();
