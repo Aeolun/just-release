@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 (2026-02-10)
+
+### Features
+
+- support non-conventional commits in changelog, PR summary, and display
+
+### Chores
+
+- add CLAUDE.md and gitignore package-lock.json
+
 ## 0.7.0 (2026-01-12)
 
 ### Features
