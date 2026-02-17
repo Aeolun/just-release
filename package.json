@@ -1,6 +1,6 @@
 {
   "name": "just-release",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Automated monorepo release tool with conventional commits",
   "type": "module",
   "bin": {

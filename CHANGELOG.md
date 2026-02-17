@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.2 (2026-02-17)
+
+### Bug Fixes
+
+- support both squash and regular merge for release PRs
+- truncate PR body to stay within GitHub's 65k character limit
+
+### Chores
+
+- update to Node LTS, pnpm/action-setup@v4, add packageManager field
+
 ## 0.8.1 (2026-02-10)
 
 ### Bug Fixes
