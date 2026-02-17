@@ -151,7 +151,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-latest
     # Skip if this is a release commit (squash merge) or merge of a release branch (regular merge)
     if: >-
       !startsWith(github.event.head_commit.message, 'release:') &&
@@ -219,7 +219,7 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-latest
     if: >-
       startsWith(github.event.head_commit.message, 'release:') ||
       (startsWith(github.event.head_commit.message, 'Merge') && contains(github.event.head_commit.message, 'release/'))
@@ -282,7 +282,7 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-latest
     if: >-
       startsWith(github.event.head_commit.message, 'release:') ||
       (startsWith(github.event.head_commit.message, 'Merge') && contains(github.event.head_commit.message, 'release/'))
