@@ -38,12 +38,8 @@ jobs:
       - name: Smoke test
         env:
           CI: 0
-        run: node dist/cli.js
-
-      - name: Verify smoke test output
-        env:
-          CI: 0
         run: |
+          node dist/cli.js
           OUTPUT=$(node dist/cli.js 2>&1)
           if [ -z "$OUTPUT" ]; then
             echo "ERROR: just-release produced no output"
