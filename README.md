@@ -27,6 +27,7 @@ If this matches your workflow (and it should), `just-release` will make your lif
 - 📄 **Smart changelogs** - Generates per-package changelogs only for packages with changes
 - 🌿 **Git automation** - Creates release branches, commits, and pushes automatically
 - 🔗 **GitHub integration** - Creates or updates PRs automatically
+- ✂️ **Smart PR truncation** - Progressively truncates large PR bodies to stay within GitHub's 65k character limit
 - 🔒 **Dry-run by default** - Safe to run locally without making changes
 
 ## Installation
@@ -308,6 +309,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+## PR Body Truncation
+
+GitHub limits PR body text to 65,536 characters. For repositories with many commits since the last release, the PR description is progressively truncated in three tiers:
+
+1. **Full detail** (up to ~40k chars) — Each commit is shown with its hash, type prefix, subject, and full body text
+2. **Summary only** (40k–60k chars) — Remaining commits are listed with hash, type prefix, and subject only (no body)
+3. **Counts only** (after 60k chars) — Remaining commits are collapsed into a single line: *"...and N more commits (X features, Y fixes, Z chores)"*
+
+This ensures the PR always stays within GitHub's limit while showing as much detail as possible.
 
 ## Single-Package vs Monorepo
 
