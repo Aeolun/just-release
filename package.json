@@ -27,7 +27,7 @@
   "packageManager": "pnpm@9.15.5",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Aeolun/just-release"
+    "url": "https://github.com/serialexp/just-release"
   },
   "dependencies": {
     "@octokit/rest": "^22.0.1",
