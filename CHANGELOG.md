@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.4 (2026-02-20)
+
+### Bug Fixes
+
+- use GitHub-hosted runner for npm trusted publishing
+
+### Chores
+
+- update project documentation
+
 ## 0.8.3 (2026-02-20)
 
 ### Bug Fixes
