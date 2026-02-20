@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.5 (2026-02-20)
+
+### Bug Fixes
+
+- update repository URL to new location
+
 ## 0.8.4 (2026-02-20)
 
 ### Bug Fixes
