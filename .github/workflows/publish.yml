@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   publish:
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     # Run if this is a release commit (squash merge) or a merge of a release branch (regular merge)
     if: >-
       startsWith(github.event.head_commit.message, 'release:') ||
