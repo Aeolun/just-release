@@ -17,11 +17,14 @@ import { generateChangelogSection, groupCommitsByPackage } from './changelog.js'
 import { simpleGit } from 'simple-git';
 import { isReleaseCommit } from './release-commit.js';
 import { getCommitPrefix, generatePRSummary } from './formatting.js';
+import { createRequire } from 'node:module';
 
+const require = createRequire(import.meta.url);
+const { version: toolVersion } = require('../package.json');
 const colors = getColors(process.env, process.stdout.isTTY);
 
 async function runPostRelease(cwd: string) {
-  console.log('📦 Post-release mode detected\n');
+  // Post-release mode message is logged by the caller
 
   // Check for GITHUB_TOKEN
   const githubToken = process.env.GITHUB_TOKEN;
@@ -73,7 +76,7 @@ async function main() {
   const showPrPreview = process.argv.includes('--pr');
   const cwd = process.cwd();
 
-  console.log('🚀 just-release\n');
+  console.log(`🚀 just-release (version: ${toolVersion})\n`);
 
   // Check if we're on a release commit (post-release mode)
   // Check recent commits to handle both squash merges (HEAD is release commit)
@@ -81,7 +84,9 @@ async function main() {
   const git = simpleGit(cwd);
   const log = await git.log({ maxCount: 3 });
 
-  if (log.all.some((c) => isReleaseCommit(c.message))) {
+  const releaseCommit = log.all.find((c) => isReleaseCommit(c.message));
+  if (releaseCommit) {
+    console.log(`📦 Post-release mode detected (commit: "${releaseCommit.message}")\n`);
     await runPostRelease(cwd);
     return;
   }
