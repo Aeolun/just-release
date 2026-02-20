@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.3 (2026-02-20)
+
+### Bug Fixes
+
+- add version display and debug logging for post-release detection
+- only detect post-release from HEAD or its merge parents
+
+### Chores
+
+- switch CI runners to depot-ubuntu-latest
+- simplify smoke test to plain CLI run
+- add separate output verification step to smoke test
+- consolidate smoke test into single step
+
 ## 0.8.2 (2026-02-17)
 
 ### Bug Fixes
