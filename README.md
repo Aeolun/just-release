@@ -13,15 +13,16 @@ This tool is **opinionated by design**. It doesn't try to support every weird re
 - ✅ GitHub Actions for automated releases
 - ✅ Per-package changelogs
 - ✅ Unified versioning across all packages
-- ✅ Works with pnpm, npm, and yarn workspaces (or single packages)
+- ✅ Works with JavaScript (npm/pnpm/yarn), Rust (Cargo), and Go ecosystems
+- ✅ Supports mixed-ecosystem repos (e.g., JS + Rust in the same repo)
 
-The actual publishing step is up to you - use `npm publish`, `pnpm publish`, or whatever fits your setup. `just-release` handles everything up to creating the release PR.
+The actual publishing step is up to you - use `npm publish`, `cargo publish`, or whatever fits your setup. `just-release` handles everything up to creating the release PR.
 
 If this matches your workflow (and it should), `just-release` will make your life easier. If you need something else, this probably isn't the tool for you.
 
 ## Features
 
-- 🔍 **Automatic workspace detection** - Works with pnpm, npm, and yarn workspaces
+- 🔍 **Automatic ecosystem detection** - Works with JavaScript, Rust, and Go (including mixed repos)
 - 📝 **Conventional commits** - Analyzes commits to determine version bumps
 - 📦 **Unified versioning** - All packages in the workspace share the same version
 - 📄 **Smart changelogs** - Generates per-package changelogs only for packages with changes
@@ -34,6 +35,12 @@ If this matches your workflow (and it should), `just-release` will make your lif
 
 ```bash
 pnpm add -D just-release
+```
+
+Or run directly with npx:
+
+```bash
+npx just-release
 ```
 
 ## Usage
@@ -58,18 +65,44 @@ CI=1 GITHUB_TOKEN=$GITHUB_TOKEN pnpm just-release
 
 ## How It Works
 
-1. **Detects workspace** - Reads `pnpm-workspace.yaml` or `package.json` workspaces field
-2. **Analyzes commits** - Gets all commits since the last release (marked by `release: X.Y.Z` commits)
-3. **Calculates version bump** - Based on conventional commit types:
+1. **Detects ecosystems** - Scans for `package.json`, `Cargo.toml`, and/or `go.mod` at the repo root. Discovers all packages across all detected ecosystems.
+2. **Resolves current version** - Reads the version from git history: last `release: X.Y.Z` commit → latest `vX.Y.Z` tag → `0.0.0`
+3. **Analyzes commits** - Gets all commits since the last release
+4. **Calculates version bump** - Based on conventional commit types:
    - `feat:` → minor version bump
    - `fix:` → patch version bump
    - `BREAKING CHANGE:` or `feat!:` → major version bump
    - `chore:`, `docs:` → no release
-4. **Generates changelogs** - Creates/updates `CHANGELOG.md` in each affected package
-5. **Creates release branch** - Named `release/YYYY-MM-DD`
-6. **Updates versions** - Updates `version` field in all package.json files
-7. **Commits and pushes** - Creates commit with message `release: X.Y.Z`
-8. **Creates/updates PR** - Opens or updates a pull request on GitHub
+5. **Generates changelogs** - Creates/updates `CHANGELOG.md` in each affected package
+6. **Creates release branch** - Named `release/YYYY-MM-DD`
+7. **Updates versions** - Updates version in ecosystem-specific manifest files (`package.json`, `Cargo.toml`; Go versions are purely git tags)
+8. **Commits and pushes** - Creates commit with message `release: X.Y.Z`
+9. **Creates/updates PR** - Opens or updates a pull request on GitHub
+
+## Supported Ecosystems
+
+### JavaScript (npm/pnpm/yarn)
+
+- Detects `package.json` at root
+- Discovers packages from `pnpm-workspace.yaml` or `package.json` `workspaces` field
+- Updates `version` in all `package.json` files
+
+### Rust (Cargo)
+
+- Detects `Cargo.toml` at root
+- Discovers crates from `[workspace] members` patterns
+- Handles `version.workspace = true` inheritance
+- Updates `version` in `Cargo.toml` files (preserving formatting and comments)
+
+### Go
+
+- Detects `go.mod` at root
+- Discovers modules from `go.work` `use` directives
+- Version updates are a no-op — Go versions are purely git tags, which are created automatically by the GitHub release step
+
+### Mixed Repos
+
+If your repo contains multiple ecosystems (e.g., a TypeScript CLI with a Rust native module), `just-release` discovers and processes all of them. Every package shares the same synchronized version.
 
 ## Environment Variables
 
@@ -151,7 +184,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     # Skip if this is a release commit (squash merge) or merge of a release branch (regular merge)
     if: >-
       !startsWith(github.event.head_commit.message, 'release:') &&
@@ -161,33 +194,31 @@ jobs:
         with:
           fetch-depth: 0 # Required to get all commits
 
-      - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
-          cache: 'pnpm'
 
-      - run: pnpm install
-
-      - name: Create release PR
+      - run: npx just-release
         env:
           CI: 1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm just-release
 ```
 
 ### Publishing
 
-`just-release` handles versioning, changelogs, and release PRs - but **publishing to npm is up to you**. This separation gives you full control over how and where you publish.
+`just-release` handles versioning, changelogs, and release PRs - but **publishing is up to you**. This separation gives you full control over how and where you publish.
 
-Below are two common approaches for publishing after a release PR is merged.
+Below are publishing workflow examples for each ecosystem.
 
-#### Option 1: Trusted Publishing (Recommended)
+---
+
+#### Publishing npm Packages
+
+##### Option 1: Trusted Publishing (Recommended)
 
 Trusted publishing uses OIDC - no npm tokens required. This works with npmjs.org or any registry that supports trusted publishing and provenance.
 
-##### Setup Trusted Publishing (npmjs.org)
+**Setup Trusted Publishing (npmjs.org):**
 
 1. Go to https://www.npmjs.com/package/YOUR-PACKAGE-NAME/access
 2. Click "Publishing access" → "Add a trusted publisher"
@@ -199,8 +230,6 @@ Trusted publishing uses OIDC - no npm tokens required. This works with npmjs.org
    - **Environment**: leave blank
 
 For custom registries, consult their documentation for trusted publishing setup.
-
-##### Create Publish Workflow
 
 Create `.github/workflows/publish.yml`:
 
@@ -219,7 +248,7 @@ permissions:
 
 jobs:
   publish:
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     if: >-
       startsWith(github.event.head_commit.message, 'release:') ||
       (startsWith(github.event.head_commit.message, 'Merge') && contains(github.event.head_commit.message, 'release/'))
@@ -246,7 +275,7 @@ jobs:
       - run: pnpm publish --access public --provenance
 
       # Create GitHub release with changelog notes
-      - run: pnpm just-release
+      - run: npx just-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -256,11 +285,9 @@ jobs:
 - `package.json` must have a `repository` field matching your GitHub repo **exactly**:
   - Format: `https://github.com/Owner/repo-name` (no `git+` prefix, no `.git` suffix)
   - Case-sensitive: Owner name must match exactly (e.g., `Aeolun`, not `aeolun`)
-  - Example (correct): `"repository": "https://github.com/Aeolun/dijkstra-calculator"`
-  - Example (incorrect): `"repository": { "url": "git+https://github.com/aeolun/dijkstra-calculator.git" }`
 - No `NPM_TOKEN` needed - authentication uses OIDC
 
-#### Option 2: NPM Token
+##### Option 2: NPM Token
 
 If your registry doesn't support trusted publishing, you can use a traditional npm token instead.
 
@@ -282,7 +309,7 @@ permissions:
 
 jobs:
   publish:
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     if: >-
       startsWith(github.event.head_commit.message, 'release:') ||
       (startsWith(github.event.head_commit.message, 'Merge') && contains(github.event.head_commit.message, 'release/'))
@@ -305,9 +332,110 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Create GitHub release with changelog notes
-      - run: pnpm just-release
+      - run: npx just-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+---
+
+#### Publishing Rust Crates
+
+To publish to crates.io after a release PR is merged:
+
+1. Create a crates.io API token at https://crates.io/settings/tokens
+2. Add it as a repository secret named `CARGO_REGISTRY_TOKEN` in your GitHub repository settings
+
+Create `.github/workflows/publish.yml`:
+
+```yaml
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.event.head_commit.message, 'release:') ||
+      (startsWith(github.event.head_commit.message, 'Merge') && contains(github.event.head_commit.message, 'release/'))
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      # Create GitHub release with changelog notes
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - run: npx just-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+For a **Cargo workspace** with multiple crates, publish each one:
+
+```yaml
+      - run: |
+          cargo publish -p my-core-crate
+          cargo publish -p my-other-crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+```
+
+**Note:** If your crates have internal dependencies (e.g., `my-other-crate` depends on `my-core-crate`), publish the dependency first — crates.io validates that dependencies exist at the declared version at publish time.
+
+---
+
+#### Publishing Go Modules
+
+Go modules don't need an explicit publish step. The `go` tool resolves modules directly from git tags, and `just-release` already creates `vX.Y.Z` tags via the GitHub release step.
+
+After the release PR is merged, you only need to create the GitHub release:
+
+```yaml
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.event.head_commit.message, 'release:') ||
+      (startsWith(github.event.head_commit.message, 'Merge') && contains(github.event.head_commit.message, 'release/'))
+    steps:
+      - uses: actions/checkout@v4
+
+      # Create GitHub release (which creates the vX.Y.Z tag that Go needs)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - run: npx just-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Users can then install your module with:
+
+```bash
+go get github.com/your-org/your-module@v1.2.3
 ```
 
 ## PR Body Truncation
@@ -324,19 +452,18 @@ This ensures the PR always stays within GitHub's limit while showing as much det
 
 `just-release` automatically adapts to your repository structure:
 
-- **Monorepo** - If `pnpm-workspace.yaml` or `package.json` workspaces are found, all workspace packages are bumped to the same version
+- **JavaScript monorepo** - If `pnpm-workspace.yaml` or `package.json` workspaces are found, all workspace packages are bumped to the same version
+- **Rust workspace** - If `Cargo.toml` has a `[workspace]` section with `members`, all crates are bumped together
+- **Go workspace** - If `go.work` exists, all modules listed in `use` directives are tracked together
 - **Single-package** - If no workspace configuration is found, the root package is treated as the only package
-
-This means you can use `just-release` for both monorepos and single-package repos without any configuration changes.
+- **Mixed ecosystems** - All ecosystems are detected simultaneously. A repo with both `package.json` and `Cargo.toml` will have all packages from both ecosystems versioned together.
 
 ## Requirements
 
 - Node.js >= 18
 - Git repository with `origin` remote pointing to GitHub
-- **Public** GitHub repository (only required if using trusted publishing with provenance)
-- Root `package.json` with a `version` field
-- For trusted publishing: `repository` field in the format `https://github.com/Owner/repo-name` (case-sensitive, no `git+` or `.git`)
-- Optional: Workspace configuration in `pnpm-workspace.yaml` or `package.json`
+- At least one ecosystem manifest at root: `package.json`, `Cargo.toml`, or `go.mod`
+- **Public** GitHub repository (only required if using trusted publishing with provenance for npm)
 
 ## License
 

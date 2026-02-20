@@ -17,11 +17,21 @@ import { generateChangelogSection, groupCommitsByPackage } from './changelog.js'
 import { simpleGit } from 'simple-git';
 import { getCommitPrefix, generatePRSummary } from './formatting.js';
 import { detectPostRelease } from './post-release.js';
+import { publishAllPackages, hasPublishFailures } from './publish.js';
 import { createRequire } from 'node:module';
+import type { WorkspacePackage } from './workspace.js';
 
 const require = createRequire(import.meta.url);
 const { version: toolVersion } = require('../package.json');
 const colors = getColors(process.env, process.stdout.isTTY);
+
+function getManifestName(pkg: WorkspacePackage): string {
+  switch (pkg.ecosystem) {
+    case 'javascript': return 'package.json';
+    case 'rust': return 'Cargo.toml';
+    case 'go': return 'go.mod';
+  }
+}
 
 async function runPostRelease(cwd: string) {
   console.log('📦 Post-release mode detected\n');
@@ -33,9 +43,45 @@ async function runPostRelease(cwd: string) {
     process.exit(1);
   }
 
-  // Get current version from package.json
+  // Get current version from git history
   const workspace = await detectWorkspace(cwd);
   const version = workspace.rootVersion;
+
+  // Publish packages to registries (before GitHub release so packages are
+  // available when the release is announced / Go tag is created)
+  console.log('📦 Publishing packages...\n');
+  const summaries = await publishAllPackages(
+    cwd,
+    version,
+    workspace.packages,
+    workspace.adapters
+  );
+
+  let publishFailed = false;
+  for (const summary of summaries) {
+    if (summary.skipped) {
+      console.log(
+        `   Skipping ${summary.ecosystem} publishing: ${summary.skipReason}`
+      );
+    } else {
+      for (const result of summary.results) {
+        if (result.success) {
+          console.log(`   ✅ Published ${result.packageName}`);
+        } else {
+          console.log(
+            `   ❌ Failed to publish ${result.packageName}: ${result.error}`
+          );
+        }
+      }
+    }
+  }
+
+  if (hasPublishFailures(summaries)) {
+    publishFailed = true;
+    console.log('\n⚠️  Some packages failed to publish\n');
+  } else if (summaries.length > 0) {
+    console.log();
+  }
 
   console.log(`📝 Creating GitHub release for v${version}...\n`);
 
@@ -69,6 +115,10 @@ async function runPostRelease(cwd: string) {
   } else {
     console.log('✅ GitHub release updated!\n');
   }
+
+  if (publishFailed) {
+    process.exit(1);
+  }
 }
 
 async function main() {
@@ -100,12 +150,16 @@ async function main() {
       workspace.packages[0].path === workspace.rootPath;
 
     if (isSinglePackage) {
-      console.log(`   No workspace configuration found`);
-      console.log(`   Using root package at ${colors.blue}./package.json${colors.reset}`);
+      const pkg = workspace.packages[0];
+      console.log(`   Single-package repo (${pkg.ecosystem})`);
     } else {
       console.log(
         `   Found ${workspace.packages.length} package(s) in workspace`
       );
+      for (const eco of workspace.detectedEcosystems) {
+        const count = workspace.packages.filter((p) => p.ecosystem === eco).length;
+        console.log(`     - ${eco}: ${count} package(s)`);
+      }
     }
     console.log(`   Current version: ${workspace.rootVersion}\n`);
 
@@ -155,15 +209,17 @@ async function main() {
     );
 
     if (isDryRun) {
-      const packageJsonCount =
-        workspace.packages.filter((p) => p.path !== workspace.rootPath).length + 1;
+      // Count manifest files that would be updated (Go has no version in manifest)
+      const manifestCount = workspace.packages
+        .filter((p) => p.ecosystem !== 'go')
+        .length + (workspace.detectedEcosystems.includes('javascript') ? 1 : 0); // +1 for root package.json
       const today = new Date().toISOString().split('T')[0];
       const branchName = `release/${today}`;
 
       console.log('🎯 Dry-run summary:');
       console.log(`   • Would create release branch ${colors.blue}${branchName}${colors.reset}`);
       console.log(
-        `   • Would update ${packageJsonCount} package.json file(s)`
+        `   • Would update ${manifestCount} manifest file(s)`
       );
       console.log(`   • Would generate changelogs for affected packages`);
       console.log(`   • Would commit changes with message: "release: ${versionBump.newVersion}"`);
@@ -193,17 +249,17 @@ async function main() {
         // Show files that would be changed
         console.log(`${colors.blue}Files changed:${colors.reset}\n`);
 
-        // Root package.json
-        console.log(`   ${colors.blue}package.json${colors.reset}`);
-        console.log(`     - version: ${workspace.rootVersion} → ${versionBump.newVersion}\n`);
-
-        // Workspace package.json files
+        // Version manifest files
         for (const pkg of workspace.packages) {
-          if (pkg.path !== workspace.rootPath) {
+          if (pkg.ecosystem === 'go') continue; // Go has no version manifest
+          const manifest = getManifestName(pkg);
+          if (pkg.path === workspace.rootPath) {
+            console.log(`   ${colors.blue}${manifest}${colors.reset}`);
+          } else {
             const relativePath = pkg.path.replace(workspace.rootPath + '/', '');
-            console.log(`   ${colors.blue}${relativePath}/package.json${colors.reset}`);
-            console.log(`     - version: ${pkg.version} → ${versionBump.newVersion}\n`);
+            console.log(`   ${colors.blue}${relativePath}/${manifest}${colors.reset}`);
           }
+          console.log(`     - version: ${pkg.version} → ${versionBump.newVersion}\n`);
         }
 
         // Changelogs
@@ -255,11 +311,7 @@ async function main() {
 
     // Step 6: Update package versions
     console.log('📝 Updating package versions...');
-    await updatePackageVersions(
-      cwd,
-      versionBump.newVersion!,
-      workspace.packages
-    );
+    await updatePackageVersions(workspace, versionBump.newVersion!);
     console.log('   Package versions updated\n');
 
     // Step 7: Commit and push

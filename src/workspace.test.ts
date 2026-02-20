@@ -1,18 +1,32 @@
-// ABOUTME: Tests for workspace detection and package resolution
-// ABOUTME: Validates pnpm-workspace.yaml and package.json workspaces parsing
+// ABOUTME: Tests for workspace detection across ecosystems
+// ABOUTME: Validates package discovery and git-based version resolution
 
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { detectWorkspace } from './workspace.js';
+import { simpleGit } from 'simple-git';
 import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { rmSync } from 'node:fs';
 
+async function setupGitRepoWithJs(tmpDir: string, version: string) {
+  const git = simpleGit(tmpDir);
+  await git.init();
+  await git.addConfig('user.name', 'Test User');
+  await git.addConfig('user.email', 'test@example.com');
+  await writeFile(join(tmpDir, '.gitkeep'), '');
+  await git.add('.gitkeep');
+  await git.commit('chore: initial');
+  await git.commit(`release: ${version}`, ['--allow-empty']);
+  return git;
+}
+
 test('detectWorkspace reads pnpm-workspace.yaml', async () => {
   const tmpDir = await mkdtemp(join(tmpdir(), 'test-'));
 
   try {
+    await setupGitRepoWithJs(tmpDir, '1.0.0');
     await writeFile(
       join(tmpDir, 'pnpm-workspace.yaml'),
       'packages:\n  - "packages/*"\n'
@@ -32,6 +46,7 @@ test('detectWorkspace reads pnpm-workspace.yaml', async () => {
     assert.strictEqual(result.rootVersion, '1.0.0');
     assert.strictEqual(result.packages.length, 1);
     assert.strictEqual(result.packages[0].name, 'pkg-a');
+    assert.deepStrictEqual(result.detectedEcosystems, ['javascript']);
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -41,6 +56,7 @@ test('detectWorkspace reads package.json workspaces when no pnpm-workspace.yaml'
   const tmpDir = await mkdtemp(join(tmpdir(), 'test-'));
 
   try {
+    await setupGitRepoWithJs(tmpDir, '2.0.0');
     await writeFile(
       join(tmpDir, 'package.json'),
       JSON.stringify({
@@ -65,31 +81,20 @@ test('detectWorkspace reads package.json workspaces when no pnpm-workspace.yaml'
   }
 });
 
-test('detectWorkspace throws when no root package.json', async () => {
+test('detectWorkspace throws when no ecosystem detected', async () => {
   const tmpDir = await mkdtemp(join(tmpdir(), 'test-'));
+  const git = simpleGit(tmpDir);
+  await git.init();
+  await git.addConfig('user.name', 'Test User');
+  await git.addConfig('user.email', 'test@example.com');
+  await writeFile(join(tmpDir, '.gitkeep'), '');
+  await git.add('.gitkeep');
+  await git.commit('chore: initial');
 
   try {
     await assert.rejects(
       async () => await detectWorkspace(tmpDir),
-      /root package\.json not found/i
-    );
-  } finally {
-    rmSync(tmpDir, { recursive: true, force: true });
-  }
-});
-
-test('detectWorkspace throws when root package.json has no version', async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'test-'));
-
-  try {
-    await writeFile(
-      join(tmpDir, 'package.json'),
-      JSON.stringify({ name: 'root' })
-    );
-
-    await assert.rejects(
-      async () => await detectWorkspace(tmpDir),
-      /root package\.json must have a version field/i
+      /No ecosystem detected/i
     );
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
@@ -100,6 +105,7 @@ test('detectWorkspace uses root package when no workspace config found', async (
   const tmpDir = await mkdtemp(join(tmpdir(), 'test-'));
 
   try {
+    await setupGitRepoWithJs(tmpDir, '3.0.0');
     await writeFile(
       join(tmpDir, 'package.json'),
       JSON.stringify({ name: 'my-package', version: '3.0.0' })
@@ -111,6 +117,53 @@ test('detectWorkspace uses root package when no workspace config found', async (
     assert.strictEqual(result.packages.length, 1);
     assert.strictEqual(result.packages[0].name, 'my-package');
     assert.strictEqual(result.packages[0].path, tmpDir);
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('detectWorkspace gets version from git tag when no release commit', async () => {
+  const tmpDir = await mkdtemp(join(tmpdir(), 'test-'));
+
+  try {
+    const git = simpleGit(tmpDir);
+    await git.init();
+    await git.addConfig('user.name', 'Test User');
+    await git.addConfig('user.email', 'test@example.com');
+    await writeFile(
+      join(tmpDir, 'package.json'),
+      JSON.stringify({ name: 'my-package', version: '0.0.0' })
+    );
+    await git.add('.');
+    await git.commit('chore: initial');
+    await git.addTag('v5.0.0');
+
+    const result = await detectWorkspace(tmpDir);
+
+    assert.strictEqual(result.rootVersion, '5.0.0');
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('detectWorkspace returns 0.0.0 when no version source found', async () => {
+  const tmpDir = await mkdtemp(join(tmpdir(), 'test-'));
+
+  try {
+    const git = simpleGit(tmpDir);
+    await git.init();
+    await git.addConfig('user.name', 'Test User');
+    await git.addConfig('user.email', 'test@example.com');
+    await writeFile(
+      join(tmpDir, 'package.json'),
+      JSON.stringify({ name: 'my-package', version: '1.0.0' })
+    );
+    await git.add('.');
+    await git.commit('chore: initial');
+
+    const result = await detectWorkspace(tmpDir);
+
+    assert.strictEqual(result.rootVersion, '0.0.0');
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }

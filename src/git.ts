@@ -1,10 +1,9 @@
 // ABOUTME: Handles git operations for creating release branches and commits
-// ABOUTME: Updates package.json versions across workspace packages
+// ABOUTME: Delegates version updates to ecosystem-specific adapters
 
 import { simpleGit, SimpleGit } from 'simple-git';
-import { readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { WorkspacePackage } from './workspace.js';
+import type { WorkspaceInfo } from './workspace.js';
+import { updateAllVersions } from './ecosystems/index.js';
 
 async function ensureGitConfig(git: SimpleGit): Promise<void> {
   // Only configure if we're in GitHub Actions
@@ -75,30 +74,15 @@ export async function createReleaseBranch(repoPath: string): Promise<{ name: str
 }
 
 export async function updatePackageVersions(
-  repoPath: string,
-  newVersion: string,
-  packages: WorkspacePackage[]
+  workspace: WorkspaceInfo,
+  newVersion: string
 ): Promise<void> {
-  // Update root package.json
-  const rootPath = join(repoPath, 'package.json');
-  const rootContent = await readFile(rootPath, 'utf-8');
-  const rootPackage = JSON.parse(rootContent);
-  rootPackage.version = newVersion;
-  await writeFile(rootPath, JSON.stringify(rootPackage, null, 2) + '\n');
-
-  // Update workspace packages (skip root if it's in the packages list)
-  for (const pkg of packages) {
-    // Skip if this package is the root (single-package repo)
-    if (pkg.path === repoPath) {
-      continue;
-    }
-
-    const pkgPath = join(pkg.path, 'package.json');
-    const pkgContent = await readFile(pkgPath, 'utf-8');
-    const pkgJson = JSON.parse(pkgContent);
-    pkgJson.version = newVersion;
-    await writeFile(pkgPath, JSON.stringify(pkgJson, null, 2) + '\n');
-  }
+  await updateAllVersions(
+    workspace.rootPath,
+    newVersion,
+    workspace.packages,
+    workspace.adapters
+  );
 }
 
 export async function commitAndPush(

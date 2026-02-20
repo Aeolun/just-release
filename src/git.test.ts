@@ -1,5 +1,5 @@
 // ABOUTME: Tests for git operations including branch creation and version commits
-// ABOUTME: Validates package.json version updates and commit message formatting
+// ABOUTME: Validates version updates via ecosystem adapters and commit message formatting
 
 import { test } from 'node:test';
 import assert from 'node:assert';
@@ -13,6 +13,8 @@ import { mkdtemp, writeFile, mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { rmSync } from 'node:fs';
+import { JavaScriptAdapter } from './ecosystems/javascript.js';
+import type { WorkspaceInfo } from './workspace.js';
 
 async function setupGitRepo(): Promise<string> {
   const tmpDir = await mkdtemp(join(tmpdir(), 'test-git-'));
@@ -79,12 +81,19 @@ test('updatePackageVersions updates all package.json files', async () => {
   const tmpDir = await setupGitRepo();
 
   try {
-    const packages = [
-      { name: 'pkg-a', version: '1.0.0', path: join(tmpDir, 'packages', 'pkg-a') },
-      { name: 'pkg-b', version: '1.0.0', path: join(tmpDir, 'packages', 'pkg-b') },
-    ];
+    const jsAdapter = new JavaScriptAdapter();
+    const workspace: WorkspaceInfo = {
+      rootVersion: '1.0.0',
+      rootPath: tmpDir,
+      packages: [
+        { name: 'pkg-a', version: '1.0.0', path: join(tmpDir, 'packages', 'pkg-a'), ecosystem: 'javascript' },
+        { name: 'pkg-b', version: '1.0.0', path: join(tmpDir, 'packages', 'pkg-b'), ecosystem: 'javascript' },
+      ],
+      detectedEcosystems: ['javascript'],
+      adapters: [jsAdapter],
+    };
 
-    await updatePackageVersions(tmpDir, '2.0.0', packages);
+    await updatePackageVersions(workspace, '2.0.0');
 
     // Check root package.json
     const rootPkg = JSON.parse(

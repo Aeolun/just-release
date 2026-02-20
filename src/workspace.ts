@@ -1,90 +1,36 @@
-// ABOUTME: Detects monorepo workspace configuration from pnpm-workspace.yaml or package.json
-// ABOUTME: Resolves workspace packages and validates root package.json version
+// ABOUTME: Detects workspace configuration across JavaScript, Rust, and Go ecosystems
+// ABOUTME: Resolves workspace packages and determines current version from git history
 
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { parse as parseYaml } from 'yaml';
-import { glob } from 'glob';
-
-export interface WorkspacePackage {
-  name: string;
-  version: string;
-  path: string;
-}
+export type { WorkspacePackage, EcosystemType } from './ecosystems/types.js';
+export type { EcosystemAdapter } from './ecosystems/types.js';
+import type { WorkspacePackage, EcosystemType, EcosystemAdapter } from './ecosystems/types.js';
+import { discoverAllPackages } from './ecosystems/index.js';
+import { resolveCurrentVersion } from './version-source.js';
 
 export interface WorkspaceInfo {
   rootVersion: string;
   rootPath: string;
   packages: WorkspacePackage[];
+  detectedEcosystems: EcosystemType[];
+  adapters: EcosystemAdapter[];
 }
 
 export async function detectWorkspace(rootPath: string): Promise<WorkspaceInfo> {
-  // Read and validate root package.json
-  const rootPackageJsonPath = join(rootPath, 'package.json');
-  let rootPackageJson: any;
+  const discovery = await discoverAllPackages(rootPath);
 
-  try {
-    const rootContent = await readFile(rootPackageJsonPath, 'utf-8');
-    rootPackageJson = JSON.parse(rootContent);
-  } catch (error) {
-    throw new Error('root package.json not found');
+  if (discovery.packages.length === 0) {
+    throw new Error(
+      'No ecosystem detected. Expected at least one of: package.json, Cargo.toml, or go.mod'
+    );
   }
 
-  if (!rootPackageJson.version) {
-    throw new Error('root package.json must have a version field');
-  }
-
-  // Try to read pnpm-workspace.yaml first
-  let workspacePatterns: string[] = [];
-
-  try {
-    const pnpmWorkspacePath = join(rootPath, 'pnpm-workspace.yaml');
-    const pnpmContent = await readFile(pnpmWorkspacePath, 'utf-8');
-    const pnpmConfig = parseYaml(pnpmContent);
-    workspacePatterns = pnpmConfig.packages || [];
-  } catch (error) {
-    // If pnpm-workspace.yaml doesn't exist, try package.json workspaces
-    if (rootPackageJson.workspaces) {
-      workspacePatterns = Array.isArray(rootPackageJson.workspaces)
-        ? rootPackageJson.workspaces
-        : rootPackageJson.workspaces.packages || [];
-    }
-  }
-
-  // Resolve workspace packages
-  const packages: WorkspacePackage[] = [];
-
-  for (const pattern of workspacePatterns) {
-    const packagePaths = await glob(join(pattern, 'package.json'), {
-      cwd: rootPath,
-      absolute: true,
-    });
-
-    for (const packageJsonPath of packagePaths) {
-      const packageContent = await readFile(packageJsonPath, 'utf-8');
-      const packageJson = JSON.parse(packageContent);
-      const packagePath = packageJsonPath.replace(/\/package\.json$/, '');
-
-      packages.push({
-        name: packageJson.name,
-        version: packageJson.version,
-        path: packagePath,
-      });
-    }
-  }
-
-  // If no workspace packages found, treat root as the package
-  if (packages.length === 0) {
-    packages.push({
-      name: rootPackageJson.name,
-      version: rootPackageJson.version,
-      path: rootPath,
-    });
-  }
+  const rootVersion = await resolveCurrentVersion(rootPath);
 
   return {
-    rootVersion: rootPackageJson.version,
+    rootVersion,
     rootPath,
-    packages,
+    packages: discovery.packages,
+    detectedEcosystems: discovery.detectedEcosystems,
+    adapters: discovery.adapters,
   };
 }

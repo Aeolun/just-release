@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `just-release` is an opinionated automated release tool for GitHub repositories (both monorepos and single-package projects). It analyzes conventional commits to determine version bumps, generates per-package changelogs, and creates release PRs automatically.
 
-Philosophy: Does one thing well - makes releasing version-synchronized packages simple. Works with pnpm, npm, and yarn workspaces or single packages.
+Philosophy: Does one thing well - makes releasing version-synchronized packages simple. Works with JavaScript (npm/pnpm/yarn), Rust (Cargo), and Go ecosystems, including mixed-ecosystem repos.
 
 ## Development Commands
 
@@ -29,23 +29,54 @@ The codebase follows a modular, pipeline-based architecture with clear separatio
 
 ### Main Workflow (cli.ts)
 Entry point that orchestrates the release process in sequential steps:
-1. Detect workspace configuration
-2. Analyze commits since last release
-3. Calculate version bump
-4. Generate changelogs
-5. Create/reuse release branch
-6. Update package.json versions
-7. Commit and push
-8. Create/update GitHub PR
+1. Detect workspace configuration (across all ecosystems)
+2. Resolve current version from git history
+3. Analyze commits since last release
+4. Calculate version bump
+5. Generate changelogs
+6. Create/reuse release branch
+7. Update version in manifest files (ecosystem-specific)
+8. Commit and push
+9. Create/update GitHub PR
 
 **Post-release mode**: When run on a commit starting with "release:", automatically creates a GitHub release with changelog notes.
+
+### Ecosystem Adapters (src/ecosystems/)
+
+The ecosystem adapter pattern allows supporting multiple languages. Each adapter implements:
+- `detect(rootPath)` - check if the ecosystem is present
+- `discoverPackages(rootPath)` - find all packages/crates/modules
+- `updateVersions(rootPath, newVersion, packages)` - update version in manifests
+
+**types.ts** - `EcosystemAdapter` interface and `WorkspacePackage` type (with `ecosystem` field)
+
+**javascript.ts** - JavaScript/Node.js adapter
+- Detects `package.json`, discovers packages from `pnpm-workspace.yaml` or `package.json` workspaces
+- Updates version in `package.json` files
+
+**rust.ts** - Rust/Cargo adapter
+- Detects `Cargo.toml`, discovers crates from `[workspace] members`
+- Handles `version.workspace = true` inheritance
+- Updates version via line-based replacement (preserves formatting/comments)
+
+**go.ts** - Go adapter
+- Detects `go.mod`, discovers modules from `go.work` use directives
+- `updateVersions` is a no-op (Go versions are purely git tags)
+
+**index.ts** - Orchestrator
+- Runs all adapters, merges discovered packages into a single list
+- `discoverAllPackages()` and `updateAllVersions()` coordinate across ecosystems
 
 ### Core Modules
 
 **workspace.ts** - Workspace Detection
-- Detects monorepo configuration from `pnpm-workspace.yaml` or `package.json` workspaces
-- Falls back to single-package mode if no workspace config found
-- Returns unified workspace info: root version, all packages with paths
+- Delegates to ecosystem adapters via `discoverAllPackages()`
+- Resolves current version from git history via `version-source.ts`
+- Returns unified workspace info: root version, all packages, detected ecosystems
+
+**version-source.ts** - Git-Based Version Resolution
+- Priority: last release commit → latest `vX.Y.Z` git tag → `0.0.0`
+- Version is a git-level concept, independent of any ecosystem manifest
 
 **commits.ts** - Commit Analysis
 - Fetches git commits since last release (identified by "release: X.Y.Z" commits)
@@ -71,7 +102,7 @@ Entry point that orchestrates the release process in sequential steps:
 
 **git.ts** - Git Operations
 - Creates or reuses release branches (named `release/YYYY-MM-DD`)
-- Updates version field in all package.json files
+- Delegates version updates to ecosystem adapters
 - Auto-configures git user in GitHub Actions if needed
 - Force pushes to release branch (to update existing PRs)
 
@@ -88,7 +119,10 @@ Entry point that orchestrates the release process in sequential steps:
 ## Key Concepts
 
 ### Unified Versioning
-All packages in a workspace share the same version. The root package.json version is the source of truth.
+All packages in a workspace share the same version, regardless of ecosystem. The version is determined from git history (release commits or tags), not from any ecosystem manifest file.
+
+### Multi-Ecosystem Support
+A repo can contain packages from multiple ecosystems simultaneously (e.g., JS + Rust + Go). All packages are discovered and processed uniformly.
 
 ### Release Commit Marker
 Commits with message "release: X.Y.Z" mark release points. The tool finds commits since the last such marker.
@@ -111,6 +145,7 @@ Commits are mapped to packages by analyzing which files changed. A commit affect
 
 - Tests use Node's built-in test runner (node:test)
 - All modules have corresponding `.test.ts` files
+- Ecosystem adapters have tests in `src/ecosystems/*.test.ts`
 - Tests are excluded from TypeScript compilation (tsconfig.json)
 - Run tests with `--import tsx` to handle TypeScript at runtime
 
