@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 (2026-02-20)
+
+### Features
+
+- add multi-ecosystem adapter pattern and auto-publish in post-release mode
+
 ## 0.8.5 (2026-02-20)
 
 ### Bug Fixes
